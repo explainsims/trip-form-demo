@@ -1,0 +1,332 @@
+{
+  "teachers": [
+    {
+      "id": "T01",
+      "name": "Mr Demo Alvarez",
+      "email": "alvarez@demo.example",
+      "subject": "Mathematics"
+    },
+    {
+      "id": "T02",
+      "name": "Ms Demo Bauer",
+      "email": "bauer@demo.example",
+      "subject": "English"
+    },
+    {
+      "id": "T03",
+      "name": "Mr Demo Castillo",
+      "email": "castillo@demo.example",
+      "subject": "Science"
+    },
+    {
+      "id": "T04",
+      "name": "Ms Demo Devi",
+      "email": "devi@demo.example",
+      "subject": "Humanities"
+    },
+    {
+      "id": "T05",
+      "name": "Mr Demo Eriksson",
+      "email": "eriksson@demo.example",
+      "subject": "PE & Health"
+    }
+  ],
+  "students": [
+    {
+      "id": "S0001",
+      "firstName": "Demo",
+      "lastName": "Student 01",
+      "grade": 9,
+      "email": "s0001@demo.example"
+    },
+    {
+      "id": "S0002",
+      "firstName": "Demo",
+      "lastName": "Student 02",
+      "grade": 10,
+      "email": "s0002@demo.example"
+    },
+    {
+      "id": "S0003",
+      "firstName": "Demo",
+      "lastName": "Student 03",
+      "grade": 11,
+      "email": "s0003@demo.example"
+    },
+    {
+      "id": "S0004",
+      "firstName": "Demo",
+      "lastName": "Student 04",
+      "grade": 9,
+      "email": "s0004@demo.example"
+    },
+    {
+      "id": "S0005",
+      "firstName": "Demo",
+      "lastName": "Student 05",
+      "grade": 12,
+      "email": "s0005@demo.example"
+    },
+    {
+      "id": "S0006",
+      "firstName": "Demo",
+      "lastName": "Student 06",
+      "grade": 10,
+      "email": "s0006@demo.example"
+    },
+    {
+      "id": "S0007",
+      "firstName": "Demo",
+      "lastName": "Student 07",
+      "grade": 11,
+      "email": "s0007@demo.example"
+    },
+    {
+      "id": "S0008",
+      "firstName": "Demo",
+      "lastName": "Student 08",
+      "grade": 12,
+      "email": "s0008@demo.example"
+    }
+  ],
+  "timetable": [
+    {
+      "studentId": "S0001",
+      "day": "Mon",
+      "period": 1,
+      "className": "Algebra I",
+      "teacherId": "T01"
+    },
+    {
+      "studentId": "S0002",
+      "day": "Mon",
+      "period": 1,
+      "className": "Algebra I",
+      "teacherId": "T01"
+    },
+    {
+      "studentId": "S0003",
+      "day": "Mon",
+      "period": 1,
+      "className": "Algebra I",
+      "teacherId": "T01"
+    },
+    {
+      "studentId": "S0004",
+      "day": "Tue",
+      "period": 2,
+      "className": "Biology",
+      "teacherId": "T03"
+    },
+    {
+      "studentId": "S0005",
+      "day": "Tue",
+      "period": 2,
+      "className": "Biology",
+      "teacherId": "T03"
+    },
+    {
+      "studentId": "S0006",
+      "day": "Wed",
+      "period": 3,
+      "className": "English 9",
+      "teacherId": "T02"
+    },
+    {
+      "studentId": "S0007",
+      "day": "Wed",
+      "period": 3,
+      "className": "English 9",
+      "teacherId": "T02"
+    },
+    {
+      "studentId": "S0001",
+      "day": "Thu",
+      "period": 1,
+      "className": "Algebra I",
+      "teacherId": "T01"
+    },
+    {
+      "studentId": "S0002",
+      "day": "Thu",
+      "period": 1,
+      "className": "Algebra I",
+      "teacherId": "T01"
+    },
+    {
+      "studentId": "S0004",
+      "day": "Thu",
+      "period": 1,
+      "className": "Algebra I",
+      "teacherId": "T01"
+    },
+    {
+      "studentId": "S0001",
+      "day": "Thu",
+      "period": 2,
+      "className": "Biology",
+      "teacherId": "T03"
+    },
+    {
+      "studentId": "S0003",
+      "day": "Thu",
+      "period": 2,
+      "className": "Biology",
+      "teacherId": "T03"
+    },
+    {
+      "studentId": "S0005",
+      "day": "Thu",
+      "period": 2,
+      "className": "Biology",
+      "teacherId": "T03"
+    },
+    {
+      "studentId": "S0007",
+      "day": "Thu",
+      "period": 2,
+      "className": "Biology",
+      "teacherId": "T03"
+    },
+    {
+      "studentId": "S0002",
+      "day": "Thu",
+      "period": 3,
+      "className": "English 9",
+      "teacherId": "T02"
+    },
+    {
+      "studentId": "S0004",
+      "day": "Thu",
+      "period": 3,
+      "className": "English 9",
+      "teacherId": "T02"
+    },
+    {
+      "studentId": "S0006",
+      "day": "Thu",
+      "period": 3,
+      "className": "English 9",
+      "teacherId": "T02"
+    },
+    {
+      "studentId": "S0003",
+      "day": "Thu",
+      "period": 4,
+      "className": "World History",
+      "teacherId": "T04"
+    },
+    {
+      "studentId": "S0005",
+      "day": "Thu",
+      "period": 4,
+      "className": "World History",
+      "teacherId": "T04"
+    },
+    {
+      "studentId": "S0001",
+      "day": "Thu",
+      "period": 5,
+      "className": "PE",
+      "teacherId": "T05"
+    },
+    {
+      "studentId": "S0006",
+      "day": "Thu",
+      "period": 5,
+      "className": "PE",
+      "teacherId": "T05"
+    },
+    {
+      "studentId": "S0007",
+      "day": "Thu",
+      "period": 5,
+      "className": "PE",
+      "teacherId": "T05"
+    },
+    {
+      "studentId": "S0001",
+      "day": "Fri",
+      "period": 1,
+      "className": "English 9",
+      "teacherId": "T02"
+    },
+    {
+      "studentId": "S0003",
+      "day": "Fri",
+      "period": 1,
+      "className": "English 9",
+      "teacherId": "T02"
+    },
+    {
+      "studentId": "S0005",
+      "day": "Fri",
+      "period": 2,
+      "className": "Algebra I",
+      "teacherId": "T01"
+    },
+    {
+      "studentId": "S0007",
+      "day": "Fri",
+      "period": 2,
+      "className": "Algebra I",
+      "teacherId": "T01"
+    },
+    {
+      "studentId": "S0002",
+      "day": "Fri",
+      "period": 3,
+      "className": "Biology",
+      "teacherId": "T03"
+    },
+    {
+      "studentId": "S0006",
+      "day": "Fri",
+      "period": 3,
+      "className": "Biology",
+      "teacherId": "T03"
+    },
+    {
+      "studentId": "S0003",
+      "day": "Fri",
+      "period": 4,
+      "className": "PE",
+      "teacherId": "T05"
+    },
+    {
+      "studentId": "S0004",
+      "day": "Fri",
+      "period": 4,
+      "className": "PE",
+      "teacherId": "T05"
+    },
+    {
+      "studentId": "S0001",
+      "day": "Fri",
+      "period": 5,
+      "className": "World History",
+      "teacherId": "T04"
+    },
+    {
+      "studentId": "S0002",
+      "day": "Fri",
+      "period": 5,
+      "className": "World History",
+      "teacherId": "T04"
+    },
+    {
+      "studentId": "S0004",
+      "day": "Fri",
+      "period": 5,
+      "className": "World History",
+      "teacherId": "T04"
+    },
+    {
+      "studentId": "S0006",
+      "day": "Fri",
+      "period": 5,
+      "className": "World History",
+      "teacherId": "T04"
+    }
+  ]
+}

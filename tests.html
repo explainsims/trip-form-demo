@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trip Absence Workflow — Tests</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
+    #summary { font-weight: 700; margin: 1rem 0; padding: .6rem 1rem; border-radius: 8px; }
+    #summary.pass { background: #e5f6ec; color: #136f3b; } #summary.fail { background: #fdecee; color: #b3121f; }
+    li.ok::marker { content: "✅ "; } li.no { color: #b3121f; } li.no::marker { content: "❌ "; }
+    code { background: #f1f3f7; border-radius: 4px; padding: 0 .3em; }
+  </style>
+</head>
+<body>
+  <h1>Trip Absence Workflow — unit tests</h1>
+  <p>Pure logic (CSV parse, roster join, affected-teacher computation, status) from <code>app.js</code>, with fixtures from <code>data.js</code>. No DOM required.</p>
+  <div id="summary">Running…</div>
+  <ol id="results"></ol>
+
+  <script src="./data.js"></script>
+  <!-- app.js exposes window.TAS and only wires the UI when #view exists (it doesn't here). -->
+  <script src="./app.js"></script>
+  <script>
+    (function () {
+      var T = window.TAS, FX = window.FIXTURES, out = document.getElementById("results");
+      var pass = 0, fail = 0;
+      function rec(n, ok, d) { var li = document.createElement("li"); li.className = ok ? "ok" : "no";
+        li.textContent = n + (ok ? "" : "  —  " + (d || "failed")); out.appendChild(li); ok ? pass++ : fail++; }
+      function test(n, fn) { try { fn(); rec(n, true); } catch (e) { rec(n, false, e && e.message); } }
+      function assert(c, m) { if (!c) throw new Error(m || "assertion failed"); }
+      function eq(a, b, m) { if (a !== b) throw new Error((m || "ne") + " got " + JSON.stringify(a) + " exp " + JSON.stringify(b)); }
+
+      var parsed = T.parseCsv(FX.sampleCsv);
+      var an = T.analyzeSheet(parsed, FX);
+
+      test("CSV parses the sample sheet (8 rows)", function () { eq(an.rows.length, 8); });
+      test("matches 6 students; skips blank + unknown IDs", function () {
+        eq(an.matchedStudentIds.length, 6);
+        assert(an.matchedStudentIds.indexOf("S0006") === -1 && an.matchedStudentIds.indexOf("S9999") === -1);
+      });
+      test("flags low-confidence rows instead of guessing (XX, blank, unknown)", function () { eq(an.flaggedCount, 3); });
+      test("trip days resolve to Thu, Fri", function () { eq(T.coveredWeekdays(FX.trips[0].departure, FX.trips[0].return).join(","), "Thu,Fri"); });
+
+      var wd = T.coveredWeekdays(FX.trips[0].departure, FX.trips[0].return);
+      var meetings = T.computeMeetings(an.matchedStudentIds, FX.timetable, wd);
+      test("meetings only fall on trip days", function () { assert(meetings.length > 0 && meetings.every(function (m) { return m.day === "Thu" || m.day === "Fri"; })); });
+      test("affected teachers computed (>=3)", function () { assert(T.affectedByTeacher(meetings, FX).length >= 3); });
+      test("a class has multiple students (copy-across is meaningful)", function () {
+        assert(T.affectedByTeacher(meetings, FX).some(function (g) { return g.classes.some(function (c) { return c.studentIds.length > 1; }); }));
+      });
+
+      var entries = T.buildEntries(meetings);
+      test("entries default to red (silence = non-compliance)", function () { eq(T.statusOf(entries[0]), "red"); });
+      test("status goes red -> amber -> green", function () {
+        var e = JSON.parse(JSON.stringify(entries[0]));
+        e.work.set = "Read ch.4"; eq(T.statusOf(e), "amber");
+        e.finalized = true; eq(T.statusOf(e), "green");
+      });
+      test("assessment verb: Test -> sit, else submit", function () { eq(T.assessmentVerb("Test"), "sit"); eq(T.assessmentVerb("Assignment"), "submit"); });
+
+      var sum = document.getElementById("summary");
+      sum.className = fail ? "fail" : "pass";
+      sum.textContent = (fail ? "✗ " : "✓ ") + pass + " passed, " + fail + " failed";
+      console.log("[tests] " + pass + " passed, " + fail + " failed");
+    })();
+  </script>
+</body>
+</html>

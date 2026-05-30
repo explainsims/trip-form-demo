@@ -1,0 +1,56 @@
+{
+  "seasons": [
+    "Season 1 (Fall)",
+    "Season 2 (Winter)",
+    "Season 3 (Spring)"
+  ],
+  "trips": [
+    {
+      "id": "T24",
+      "season": "Season 2 (Winter)",
+      "program": "Athletics",
+      "name": "T24 – MRISA Sr Soccer 2026",
+      "departure": "2026-02-12T07:00",
+      "return": "2026-02-15T18:00",
+      "academicNotes": "No late start permitted Monday.",
+      "rosterStudentIds": [
+        "S0001",
+        "S0002",
+        "S0003",
+        "S0004",
+        "S0005",
+        "S0006",
+        "S0007"
+      ]
+    },
+    {
+      "id": "T28",
+      "season": "Season 3 (Spring)",
+      "program": "Athletics",
+      "name": "T28 – Model UN Conference 2026",
+      "departure": "2026-05-29T07:00",
+      "return": "2026-06-01T18:00",
+      "academicNotes": "Students present Friday afternoon.",
+      "rosterStudentIds": [
+        "S0002",
+        "S0004",
+        "S0006"
+      ]
+    },
+    {
+      "id": "T31",
+      "season": "Season 3 (Spring)",
+      "program": "Athletics",
+      "name": "T31 – MRISA Sr Volleyball 2026",
+      "departure": "2026-06-08T07:00",
+      "return": "2026-06-11T18:00",
+      "academicNotes": "Return flight may be delayed; plan for Friday.",
+      "rosterStudentIds": [
+        "S0001",
+        "S0003",
+        "S0005",
+        "S0007"
+      ]
+    }
+  ]
+}
