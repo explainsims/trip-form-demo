@@ -12,22 +12,22 @@
   "use strict";
 
   var teachers = [
-    { id: "T01", name: "Mr Demo Alvarez",   email: "alvarez@demo.example",   subject: "Mathematics" },
-    { id: "T02", name: "Ms Demo Bauer",     email: "bauer@demo.example",     subject: "English" },
-    { id: "T03", name: "Mr Demo Castillo",  email: "castillo@demo.example",  subject: "Science" },
-    { id: "T04", name: "Ms Demo Devi",      email: "devi@demo.example",      subject: "Humanities" },
-    { id: "T05", name: "Mr Demo Eriksson",  email: "eriksson@demo.example",  subject: "PE & Health" }
+    { id: "T01", name: "Mr Alvarez",   email: "alvarez@demo.example",   subject: "Mathematics" },
+    { id: "T02", name: "Ms Bauer",     email: "bauer@demo.example",     subject: "English" },
+    { id: "T03", name: "Mr Castillo",  email: "castillo@demo.example",  subject: "Science" },
+    { id: "T04", name: "Ms Devi",      email: "devi@demo.example",      subject: "Humanities" },
+    { id: "T05", name: "Mr Eriksson",  email: "eriksson@demo.example",  subject: "PE & Health" }
   ];
 
   var students = [
-    { id: "S0001", firstName: "Demo", lastName: "Student 01", grade: 9,  email: "s0001@demo.example" },
-    { id: "S0002", firstName: "Demo", lastName: "Student 02", grade: 10, email: "s0002@demo.example" },
-    { id: "S0003", firstName: "Demo", lastName: "Student 03", grade: 11, email: "s0003@demo.example" },
-    { id: "S0004", firstName: "Demo", lastName: "Student 04", grade: 9,  email: "s0004@demo.example" },
-    { id: "S0005", firstName: "Demo", lastName: "Student 05", grade: 12, email: "s0005@demo.example" },
-    { id: "S0006", firstName: "Demo", lastName: "Student 06", grade: 10, email: "s0006@demo.example" },
-    { id: "S0007", firstName: "Demo", lastName: "Student 07", grade: 11, email: "s0007@demo.example" },
-    { id: "S0008", firstName: "Demo", lastName: "Student 08", grade: 12, email: "s0008@demo.example" }
+    { id: "S0001", firstName: "Maya",    lastName: "Bennett",   grade: 9,  email: "maya.bennett@demo.example" },
+    { id: "S0002", firstName: "Liam",    lastName: "Castellano", grade: 10, email: "liam.castellano@demo.example" },
+    { id: "S0003", firstName: "Aisha",   lastName: "Rahman",    grade: 11, email: "aisha.rahman@demo.example" },
+    { id: "S0004", firstName: "Noah",    lastName: "Whitfield", grade: 9,  email: "noah.whitfield@demo.example" },
+    { id: "S0005", firstName: "Sofia",   lastName: "Marchetti", grade: 12, email: "sofia.marchetti@demo.example" },
+    { id: "S0006", firstName: "Ethan",   lastName: "Okafor",    grade: 10, email: "ethan.okafor@demo.example" },
+    { id: "S0007", firstName: "Hannah",  lastName: "Lindqvist", grade: 11, email: "hannah.lindqvist@demo.example" },
+    { id: "S0008", firstName: "Daniel",  lastName: "Yamamoto",  grade: 12, email: "daniel.yamamoto@demo.example" }
   ];
 
   // Expand one class meeting across several students.
@@ -38,23 +38,31 @@
   }
 
   // A believable weekly timetable. The Feb trip (T24) spans Thu–Sun, so the
-  // Thursday/Friday meetings below are what the absence join will surface.
+  // Thursday/Friday meetings below are what the absence join surfaces.
+  //
+  // Trip participants (matched from the sample sheet): Maya (S0001),
+  // Liam (S0002), Aisha (S0003), Noah (S0004), Hannah (S0007). The trip-day
+  // meetings are arranged so that every teacher is impacted in two different
+  // classes — except Mr Eriksson (one class) — and Mr Alvarez has the same
+  // student (Maya) in both of his classes.
   var timetable = [].concat(
-    cls("Mon", 1, "Algebra I",     "T01", ["S0001", "S0002", "S0003"]),
-    cls("Tue", 2, "Biology",       "T03", ["S0004", "S0005"]),
-    cls("Wed", 3, "English 9",     "T02", ["S0006", "S0007"]),
-    // Thursday — a trip day
-    cls("Thu", 1, "Algebra I",     "T01", ["S0001", "S0002", "S0004"]),
-    cls("Thu", 2, "Biology",       "T03", ["S0001", "S0003", "S0005", "S0007"]),
-    cls("Thu", 3, "English 9",     "T02", ["S0002", "S0004", "S0006"]),
-    cls("Thu", 4, "World History", "T04", ["S0003", "S0005"]),
-    cls("Thu", 5, "PE",            "T05", ["S0001", "S0006", "S0007"]),
-    // Friday — a trip day
-    cls("Fri", 1, "English 9",     "T02", ["S0001", "S0003"]),
-    cls("Fri", 2, "Algebra I",     "T01", ["S0005", "S0007"]),
-    cls("Fri", 3, "Biology",       "T03", ["S0002", "S0006"]),
-    cls("Fri", 4, "PE",            "T05", ["S0003", "S0004"]),
-    cls("Fri", 5, "World History", "T04", ["S0001", "S0002", "S0004", "S0006"])
+    // ---- Mon–Wed filler (not trip days; adds realism, never surfaced) ----
+    cls("Mon", 1, "Algebra I",     "T01", ["S0001", "S0002", "S0005", "S0008"]),
+    cls("Tue", 2, "Biology",       "T03", ["S0001", "S0003", "S0006"]),
+    cls("Wed", 3, "English 9",     "T02", ["S0004", "S0006", "S0008"]),
+
+    // ---- Thursday (trip day) ----
+    cls("Thu", 1, "Algebra I",     "T01", ["S0001", "S0002", "S0005"]),       // Alvarez — class 1
+    cls("Thu", 2, "Biology",       "T03", ["S0001", "S0003", "S0006"]),       // Castillo — class 1
+    cls("Thu", 3, "English 9",     "T02", ["S0004", "S0008"]),                // Bauer — class 1
+    cls("Thu", 4, "World History", "T04", ["S0002", "S0004", "S0005"]),       // Devi — class 1
+    cls("Thu", 5, "PE",            "T05", ["S0003", "S0004", "S0008"]),       // Eriksson — single class
+
+    // ---- Friday (trip day) ----
+    cls("Fri", 1, "English 11",    "T02", ["S0003", "S0007"]),                // Bauer — class 2
+    cls("Fri", 2, "Geometry",      "T01", ["S0001", "S0003"]),                // Alvarez — class 2 (Maya again)
+    cls("Fri", 3, "Chemistry",     "T03", ["S0002", "S0007"]),               // Castillo — class 2
+    cls("Fri", 5, "Geography",     "T04", ["S0001", "S0007", "S0006"])        // Devi — class 2
   );
 
   var seasons = ["Season 1 (Fall)", "Season 2 (Winter)", "Season 3 (Spring)"];
@@ -84,17 +92,18 @@
   ];
 
   // The sheet the Director "uploads". Deliberately messy: an XX in the No.
-  // column, a blank ID, and an unknown ID — so the parser has rows to flag.
+  // column (not travelling), a blank ID, and an unknown ID — so the parser
+  // has rows to flag.
   var sampleCsv = [
     "No,ID,Last name,First name,Grade",
-    "1,S0001,Student 01,Demo,9",
-    "2,S0002,Student 02,Demo,10",
-    "3,S0003,Student 03,Demo,11",
-    "4,S0004,Student 04,Demo,9",
-    "XX,S0005,Student 05,Demo,12",
-    "6,,Student 06,Demo,10",
-    "7,S0007,Student 07,Demo,11",
-    "8,S9999,Student 99,Demo,12"
+    "1,S0001,Bennett,Maya,9",
+    "2,S0002,Castellano,Liam,10",
+    "3,S0003,Rahman,Aisha,11",
+    "4,S0004,Whitfield,Noah,9",
+    "XX,S0005,Marchetti,Sofia,12",
+    "6,,Okafor,Ethan,10",
+    "7,S0007,Lindqvist,Hannah,11",
+    "8,S9999,Delgado,Priya,12"
   ].join("\n");
 
   var FIXTURES = {
