@@ -186,7 +186,11 @@ tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover td { background: var(--surface-2); }
 tr.flagged td { background: var(--amber-bg); }
 tr.flagged:hover td { background: #f7ebcf; }
+tr.not-travelling td { background: var(--red-bg); color: var(--ink-soft); }
+tr.not-travelling:hover td { background: #f7ddd9; }
+tr.not-travelling .cell-flag { color: var(--red); }
 .cell-flag { color: var(--amber); font-weight: 600; font-size: .8rem; white-space: normal; }
+.sheet-reload { font-weight: 700; font-size: .95rem; color: var(--ink); margin-top: 12px; }
 .num { color: var(--ink-faint); font-variant-numeric: tabular-nums; }
 
 /* =========================================================================

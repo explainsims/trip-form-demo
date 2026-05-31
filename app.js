@@ -154,16 +154,22 @@
       var first = (cells[3] || "").trim();
       var grade = (cells[4] || "").trim();
       var flags = [];
-      if (!/^\d+$/.test(no)) flags.push("No. is not a number (“" + (no || "blank") + "”)");
+      // A non-numeric "No." (e.g. XX) marks a student who is not travelling.
+      var notTravelling = !!no && !/^\d+$/.test(no);
+      if (notTravelling) flags.push("Not travelling");
       var student = id ? idx[id] : null;
-      if (!id) flags.push("Missing student ID");
-      else if (!student) flags.push("ID not found in roster");
-      if (student && grade && String(student.grade) !== grade) {
-        flags.push("Grade differs from roster (" + student.grade + ")");
+      if (!notTravelling) {
+        if (!no) flags.push("Missing No.");
+        if (!id) flags.push("Missing student ID");
+        else if (!student) flags.push("ID not found in roster");
+        if (student && grade && String(student.grade) !== grade) {
+          flags.push("Grade differs from roster (" + student.grade + ")");
+        }
       }
       return {
         line: i + 1, no: no, id: id, last: last, first: first, grade: grade,
-        matched: !!student, student: student || null, flags: flags
+        matched: !!student && !notTravelling, student: student || null,
+        notTravelling: notTravelling, flags: flags
       };
     });
     var matchedIds = out.filter(function (r) { return r.matched; })
@@ -503,19 +509,19 @@
   function rosterTableHtml(parse) {
     if (!parse) return "";
     var rows = parse.rows.map(function (r) {
+      var rowCls = r.notTravelling ? "not-travelling" : (r.flags.length ? "flagged" : "");
       var flagCell = r.flags.length
         ? '<span class="cell-flag">⚠ ' + esc(r.flags.join("; ")) + "</span>"
         : '<span class="pill pill--green"><span class="dot"></span>OK</span>';
-      return '<tr class="' + (r.flags.length ? "flagged" : "") + '">' +
+      return '<tr class="' + rowCls + '">' +
         '<td class="num">' + esc(r.no) + "</td><td>" + esc(r.id || "—") + "</td>" +
         "<td>" + esc(r.last) + "</td><td>" + esc(r.first) + "</td>" +
         "<td>" + esc(r.grade) + "</td><td>" + flagCell + "</td></tr>";
     }).join("");
     return '<div class="table-wrap"><table><thead><tr>' +
-      "<th>No.</th><th>ID</th><th>Last</th><th>First</th><th>Grade</th><th>Confidence</th>" +
+      "<th>No.</th><th>ID</th><th>Last</th><th>First</th><th>Grade</th><th>Confirmed</th>" +
       "</tr></thead><tbody>" + rows + "</tbody></table></div>" +
-      '<p class="help">' + parse.matchedStudentIds.length + " of " + parse.rows.length +
-      " rows matched the roster. " + parse.flaggedCount + " row(s) flagged for review — nothing is guessed.</p>";
+      '<p class="sheet-reload">Make any required changes on original Google Sheet and reload to confirm</p>';
   }
 
   // Trip details prepopulated from the loaded sheet, shown above the roster.
@@ -546,7 +552,7 @@
       return '<div class="affected-group"><h4>' + esc(g.teacher.name) +
         ' <span class="chip">' + g.classes.length + " class(es)</span></h4><ul>" + items + "</ul></div>";
     }).join("");
-    return '<p class="help" style="margin-bottom:10px">Trip days: ' + esc(weekdays.join(", ")) + ". Every teacher × class × period the trip disrupts — visible before anything is sent.</p>" + body;
+    return body;
   }
 
   function dashboardHtml() {
@@ -667,7 +673,7 @@
     }
     return '<div class="card"><div class="card__head"><div class="card__title">' +
       '<span class="eyebrow">Trip sheet</span></div>' +
-      '<p class="card__sub">Loaded from Drive · parsed in your browser. Trip details and roster were extracted from the sheet.</p></div>' +
+      '<p class="card__sub">Trip details and roster extracted from loaded sheet.</p></div>' +
       '<div class="card__body">' + tripSummaryHtml(trip) + rosterTableHtml(d.parse) + "</div></div>";
   }
 
@@ -677,8 +683,7 @@
 
     var main =
       sheetCard() +
-      '<div class="card"><div class="card__head"><div class="card__title">Affected teachers</div>' +
-      '<p class="card__sub">Computed from the timetable — shown before anything is sent.</p></div>' +
+      '<div class="card"><div class="card__head"><div class="card__title">Impacted classes</div></div>' +
       '<div class="card__body">' + affectedHtml(d.parse, trip) + "</div></div>";
 
     var side = (snap() ? frozenCard() : "") + sourcePickerCard() + contactApproveCard();
@@ -865,7 +870,8 @@
     var blocks = Object.keys(byTeacher).sort().map(function (tid) {
       var es = byTeacher[tid];
       var classes = es.map(function (e) {
-        var work = (e.work && (e.work.outstanding || e.work.set)) || "To be confirmed with your teacher.";
+        var workSet = (e.work && e.work.set) ? e.work.set : "To be confirmed with your teacher.";
+        var outstanding = (e.work && e.work.outstanding) ? e.work.outstanding : "—";
         var assess = (e.missedAssessment && e.missedAssessment.flag)
           ? '<div class="note-box" style="margin-top:8px">A <b>' + esc(e.missedAssessment.type || "task") + "</b> was missed. Please <b>" +
             esc(assessmentVerb(e.missedAssessment.type)) + "</b> it as soon as practical after you return, in negotiation with your teacher.</div>"
@@ -873,7 +879,8 @@
         return '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">' +
           '<div class="row" style="justify-content:space-between"><b>' + esc(e.className) + "</b>" + pillHtml(statusOf(e)) + "</div>" +
           '<dl class="kv" style="margin-top:8px">' +
-          "<div><dt>Work owed</dt><dd>" + esc(work) + "</dd></div>" +
+          "<div><dt>Work set</dt><dd>" + esc(workSet) + "</dd></div>" +
+          "<div><dt>Still outstanding</dt><dd>" + esc(outstanding) + "</dd></div>" +
           "<div><dt>Form done before trip</dt><dd>" + factIcon(e.completedFormBeforeTrip) + "</dd></div>" +
           "<div><dt>Work completed</dt><dd>" + factIcon(e.completedWork) + "</dd></div>" +
           (e.missedAssessment.flag ? "<div><dt>Make-up negotiated</dt><dd>" + factIcon(e.assessmentNegotiated) + "</dd></div>" : "") +
