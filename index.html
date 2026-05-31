@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="color-scheme" content="light dark" />
+  <meta name="color-scheme" content="light" />
   <!-- Embeddable as an iframe (e.g. Google Sites); harmless when served directly. -->
   <meta http-equiv="Content-Security-Policy" content="frame-ancestors *" />
   <meta name="description" content="Prototype of a school Trip Absence Workflow. Fictional data, no backend — runs entirely in the browser." />
@@ -14,39 +14,40 @@
 <body>
   <a class="skip-link" href="#view">Skip to content</a>
 
-  <!-- Persistent fictional-data banner -->
-  <header class="banner" role="banner">
-    <strong>PROTOTYPE — all data fictional.</strong>
-    <span class="banner__sub">A demonstration of the flow only. No data leaves your browser; nothing is emailed and no record is written to any external system.</span>
-  </header>
+  <!-- Persistent fictional-data notice -->
+  <div class="banner" role="note">
+    <span class="banner__tag">Prototype</span>
+    <span class="banner__text">All data is fictional. Nothing is emailed and no record is written to any external system — the entire workflow runs in your browser.</span>
+  </div>
 
   <!-- Demo-only control bar -->
   <div class="toolbar" id="toolbar">
     <div class="toolbar__inner">
-      <div class="toolbar__group">
-        <span class="toolbar__label" id="view-label">View</span>
-        <div class="seg" role="group" aria-labelledby="view-label" id="view-seg">
-          <button type="button" class="seg__btn" data-view="director">Director</button>
-          <button type="button" class="seg__btn" data-view="teacher">Teacher</button>
-          <button type="button" class="seg__btn" data-view="student">Student</button>
-          <button type="button" class="seg__btn" data-view="outbox">Outbox</button>
+      <div class="toolbar__row">
+        <div class="toolbar__group">
+          <span class="toolbar__label" id="view-label">View</span>
+          <div class="seg" role="group" aria-labelledby="view-label" id="view-seg">
+            <button type="button" class="seg__btn" data-view="director">Director</button>
+            <button type="button" class="seg__btn" data-view="teacher">Teacher</button>
+            <button type="button" class="seg__btn" data-view="student">Student</button>
+            <button type="button" class="seg__btn" data-view="outbox">Outbox</button>
+          </div>
+        </div>
+
+        <div class="toolbar__group" id="viewing-as-group" hidden>
+          <label class="toolbar__label" for="viewing-as">Viewing as</label>
+          <select id="viewing-as" class="select select--inline"></select>
+        </div>
+
+        <div class="toolbar__group toolbar__right">
+          <button type="button" id="reset-demo" class="btn btn--sm btn--ghost btn--danger">Reset demo</button>
         </div>
       </div>
 
-      <div class="toolbar__group" id="viewing-as-group" hidden>
-        <label class="toolbar__label" for="viewing-as">Viewing as</label>
-        <select id="viewing-as" class="select"></select>
-      </div>
-
-      <div class="toolbar__group toolbar__stages">
+      <div class="toolbar__row toolbar__row--stages">
         <span class="toolbar__label">Stage</span>
         <span id="stage-readout" class="stage-readout">Not started</span>
         <div class="stage-buttons" id="stage-buttons" role="group" aria-label="Advance the demo clock"></div>
-      </div>
-
-      <div class="toolbar__group toolbar__right">
-        <span class="toolbar__demo-tag" title="These controls exist only for the demonstration">demo controls</span>
-        <button type="button" id="reset-demo" class="btn btn--ghost btn--danger">Reset demo</button>
       </div>
     </div>
   </div>
