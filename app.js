@@ -653,8 +653,7 @@
       "<div><dt>Students affected</dt><dd>" + studentIdsWithEntries().length + "</dd></div>" +
       "<div><dt>Teachers affected</dt><dd>" + teacherIdsWithEntries().length + "</dd></div>" +
       "<div><dt>Designated contact</dt><dd>" + esc(s.designatedContactTeacherId ? teacherName(s.designatedContactTeacherId) : "Director (you)") + "</dd></div>" +
-      '</dl><button type="button" class="btn btn--block" data-action="fyi" style="margin-top:14px">Send FYI to HS Admin</button>' +
-      '<button type="button" class="btn btn--block" data-action="goto" data-view="teacher" style="margin-top:8px">Open Teacher view</button>' +
+      '</dl><button type="button" class="btn btn--primary btn--block" data-action="fyi" style="margin-top:14px">Notify HS Admin</button>' +
       "</div></div>";
   }
 
