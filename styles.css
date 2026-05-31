@@ -219,9 +219,9 @@ tr.flagged:hover td { background: #f7ebcf; }
 .source__btn:disabled { cursor: not-allowed; opacity: .85; }
 .source__icon { width: 30px; height: 30px; flex: none; display: grid; place-items: center; }
 .source__icon svg { width: 26px; height: 26px; display: block; }
-.source__main { flex: 1; min-width: 0; }
-.source__title { display: block; font-weight: 600; font-size: .92rem; }
-.source__desc { display: block; font-size: .8rem; color: var(--ink-soft); margin-top: 1px; }
+.source__main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.source__title { font-weight: 600; font-size: .92rem; }
+.source__desc { font-size: .8rem; color: var(--ink-soft); margin-top: 1px; }
 .source__hint { font-size: .72rem; color: var(--ink-faint); border: 1px dashed var(--border-strong);
   border-radius: 4px; padding: 1px 6px; flex: none; }
 
