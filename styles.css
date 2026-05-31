@@ -281,15 +281,38 @@ legend { font-weight: 700; font-size: .85rem; padding: 0 6px; color: var(--ink);
   background: var(--accent-soft); border-radius: var(--radius-sm); padding: 11px 13px; font-size: .85rem; color: var(--ink); }
 .note-box b { color: var(--accent-strong); }
 
-/* Outbox email cards */
-.email { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-sm); }
+/* Outbox — each stage is a tinted group of one or more example emails */
+.outbox-group { border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px 16px; margin-bottom: 16px; }
+.outbox-group__title { font-size: .82rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft); margin-bottom: 12px; }
+/* Per-stage background shades (light) */
+.outbox-group--approved          { background: #eef3fb; border-color: #d6e2f3; }   /* notification */
+.outbox-group--week_out          { background: #eaf6ef; border-color: #cfe9da; }   /* week-out */
+.outbox-group--departure         { background: #fbf1e6; border-color: #f0dcc2; }   /* morning of departure */
+.outbox-group--day_before_return { background: #f4eefb; border-color: #e2d4f1; }   /* day before return */
+.outbox-group--morning_return    { background: #fdeef0; border-color: #f4d2d8; }   /* morning of return */
+.outbox-group--approved .outbox-group__title          { color: #2c4f86; }
+.outbox-group--week_out .outbox-group__title          { color: #2c6c49; }
+.outbox-group--departure .outbox-group__title         { color: #8a5a1e; }
+.outbox-group--day_before_return .outbox-group__title { color: #6a4699; }
+.outbox-group--morning_return .outbox-group__title    { color: #a23c4c; }
+
+.email { border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); box-shadow: var(--shadow-sm); overflow: hidden; }
 .email + .email { margin-top: 12px; }
-.email__head { padding: 12px 16px; border-bottom: 1px solid var(--border); }
-.email__subject { font-weight: 700; font-size: .95rem; }
-.email__meta { font-size: .8rem; color: var(--ink-soft); margin-top: 4px; }
-.email__meta b { color: var(--ink); font-weight: 600; }
-.email__body { padding: 14px 16px; white-space: pre-wrap; font-size: .88rem; color: var(--ink-soft); }
-.email__stage { font-size: .72rem; }
+.email__head { padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+.email__subject { font-weight: 700; font-size: .95rem; color: var(--ink); }
+.email__fields { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px;
+  margin: 8px 0 0; font-size: .8rem; }
+.email__fields dt { color: var(--ink-faint); font-weight: 600; text-transform: uppercase;
+  letter-spacing: .03em; font-size: .68rem; align-self: center; }
+.email__fields dd { margin: 0; color: var(--ink-soft); }
+.email__body { padding: 14px 16px; white-space: pre-wrap; font-size: .88rem;
+  color: var(--ink); line-height: 1.55; }
+.email__link { margin: 14px 0 0; white-space: normal; }
+.email__link a { font-weight: 600; color: var(--accent); text-decoration: underline; cursor: pointer; }
+.email__link-note { display: block; font-size: .72rem; color: var(--ink-faint); margin-top: 2px; }
 
 /* Dashboard */
 .dash-group h3 { font-size: .95rem; margin: 20px 0 8px; color: var(--ink); }

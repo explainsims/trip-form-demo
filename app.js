@@ -309,12 +309,19 @@
     return true;
   }
 
-  function pushEmail(stage, to, subject, body) {
+  // Fake links that would normally open the recipient's page for this trip.
+  var LINK_BASE = "https://trips.ssis.example";
+  function teacherLink(tid) { return LINK_BASE + "/teacher/" + tid + "?trip=" + (snap() ? snap().tripId : ""); }
+  function studentLink(sid) { return LINK_BASE + "/student/" + sid + "?trip=" + (snap() ? snap().tripId : ""); }
+  function adminLink() { return LINK_BASE + "/admin/trip/" + (snap() ? snap().tripId : ""); }
+
+  function pushEmail(stage, to, subject, body, link) {
     var s = snap(); if (!s) return;
     s.outbox.push({
       id: "e" + (s.outbox.length + 1) + "-" + Date.now(),
       ts: new Date().toISOString(), stage: stage,
-      from: SENDER, to: to, subject: subject, body: body
+      from: SENDER, to: to, subject: subject, body: body,
+      link: link || null   // { text: "...", url: "..." }
     });
   }
   function alreadyFired(stage) { var s = snap(); return s && s.firedStages.indexOf(stage) !== -1; }
@@ -322,8 +329,20 @@
 
   function tripDatesLine() { var s = snap(); return fmtDate(s.departure) + " – " + fmtDate(s.return); }
 
+  function classesForTeacher(tid) {
+    var s = snap();
+    return uniq(s.entries.filter(function (e) { return e.teacherId === tid; }).map(function (e) { return e.className; }));
+  }
+  // A representative teacher who has TWO classes on the trip (not the
+  // single-class teacher), so the example email shows multiple classes.
+  function exampleTeacherId() {
+    var ids = teacherIdsWithEntries();
+    for (var i = 0; i < ids.length; i++) { if (classesForTeacher(ids[i]).length >= 2) return ids[i]; }
+    return ids[0];
+  }
+  function exampleStudentId() { return studentIdsWithEntries()[0]; }
+
   function classLineForTeacher(tid) {
-    // "Algebra I: Demo Student 01, Demo Student 02"
     var s = snap();
     var by = {};
     s.entries.filter(function (e) { return e.teacherId === tid; }).forEach(function (e) {
@@ -332,19 +351,37 @@
     return Object.keys(by).map(function (c) { return "  • " + c + ": " + by[c].join(", "); }).join("\n");
   }
 
+  // ---- One example email per stage (demo-friendly) --------------------
+
   function fireWeekOut() {
     if (alreadyFired("week_out")) { toast("Week-out notices already sent."); return; }
     var s = snap();
-    teacherIdsWithEntries().forEach(function (tid) {
-      var t = tIdx()[tid];
-      var body =
-        "Hello " + (t ? t.name : tid) + ",\n\n" +
-        "The following students in your classes will be away on " + s.tripName +
-        " (" + tripDatesLine() + "):\n\n" + classLineForTeacher(tid) + "\n\n" +
-        "Students are responsible for coming to see you before they leave to arrange the work they will miss. " +
-        "Please log what you set for each student in the Trip Absence Workflow when they do.\n\n— " + SENDER;
-      pushEmail("week_out", (t ? t.email : tid), "Upcoming absences: " + s.tripName, body);
-    });
+
+    // Teacher example (a two-class teacher).
+    var tid = exampleTeacherId(), t = tIdx()[tid];
+    var tBody =
+      "Dear " + t.name + ",\n\n" +
+      "One or more students in your classes will be away on " + s.tripName + " (" + tripDatesLine() + ").\n\n" +
+      "Affected classes:\n" + classLineForTeacher(tid) + "\n\n" +
+      "Each student is responsible for coming to see you before they leave to arrange the work they will miss. " +
+      "When they do, please record what you set for them.";
+    pushEmail("week_out", t.email, "Upcoming trip absences — " + s.tripName, tBody,
+      { text: "Open your trip class list to record work set →", url: teacherLink(tid) });
+
+    // Student example.
+    var sid = exampleStudentId(), stu = sIdx()[sid];
+    var sClasses = entriesForStudent(sid).map(function (e) {
+      return "  • " + e.className + " with " + teacherName(e.teacherId);
+    }).join("\n");
+    var sBody =
+      "Hi " + stu.firstName + ",\n\n" +
+      "You are listed to travel on " + s.tripName + " (" + tripDatesLine() + "). You will miss these classes:\n\n" +
+      sClasses + "\n\n" +
+      "Before you leave, please see each teacher in person to arrange the work you will miss. " +
+      "It is your responsibility to make these arrangements.";
+    pushEmail("week_out", stu.email, "You are travelling on " + s.tripName, sBody,
+      { text: "View your trip page and responsibilities →", url: studentLink(sid) });
+
     markFired("week_out"); save();
     toast("Week-out notices sent to the Outbox.");
   }
@@ -353,77 +390,77 @@
     if (alreadyFired("departure")) { toast("Departure nudges already sent."); return; }
     var s = snap();
     var n = Math.max(1, (daysUntil(s.return) - daysUntil(s.departure)) + 1);
-    teacherIdsWithEntries().forEach(function (tid) {
-      var t = tIdx()[tid];
-      var body =
-        "Hello " + (t ? t.name : tid) + ",\n\n" +
-        "These students leave today on " + s.tripName + " and will be absent for the next " + n + " school day(s):\n\n" +
-        classLineForTeacher(tid) + "\n\n" +
-        "Last call to record the work you have set for them. Silence is treated as non-compliance, so please log even “no work set”.\n\n— " + SENDER;
-      pushEmail("departure", (t ? t.email : tid), "Leaving today: " + s.tripName, body);
-    });
+    var tid = exampleTeacherId(), t = tIdx()[tid];
+    var body =
+      "Dear " + t.name + ",\n\n" +
+      "These students leave today on " + s.tripName + " and will be absent for the next " + n + " school day(s):\n\n" +
+      classLineForTeacher(tid) + "\n\n" +
+      "This is the last call to record the work you have set for them. Silence is treated as non-compliance, " +
+      "so please log even “no work set”.";
+    pushEmail("departure", t.email, "Leaving today — " + s.tripName, body,
+      { text: "Record work set before they leave →", url: teacherLink(tid) });
     markFired("departure"); save();
-    toast("Departure nudges sent to the Outbox.");
+    toast("Departure nudge sent to the Outbox.");
   }
 
   function fireDayBeforeReturn() {
     if (alreadyFired("day_before_return")) { toast("Student reminders already sent."); return; }
     var s = snap();
-    studentIdsWithEntries().forEach(function (sid) {
-      var stu = sIdx()[sid];
-      var lines = entriesForStudent(sid).map(function (e) {
-        var work = (e.work && (e.work.outstanding || e.work.set)) ? (e.work.outstanding || e.work.set) : "to be confirmed with your teacher";
-        var extra = "";
-        if (e.missedAssessment && e.missedAssessment.flag) {
-          extra = " — a " + (e.missedAssessment.type || "task") + " was missed; please " +
-            assessmentVerb(e.missedAssessment.type) + " it as soon as practical after you return, in negotiation with your teacher.";
-        }
-        return "  • " + e.className + " (" + teacherName(e.teacherId) + "): " + work + extra;
-      }).join("\n");
-      var body =
-        "Hi " + (stu ? stu.firstName + " " + stu.lastName : sid) + ",\n\n" +
-        "You return tomorrow from " + s.tripName + ". Here is the work owed per class:\n\n" + lines + "\n\n" +
-        "Open your personal page (Student view) to see the latest. Go to each teacher, show them the work, and ask them to finalize your record.\n\n— " + SENDER;
-      pushEmail("day_before_return", (stu ? stu.email : sid), "Work owed for " + s.tripName, body);
-    });
+    var sid = exampleStudentId(), stu = sIdx()[sid];
+    var lines = entriesForStudent(sid).map(function (e) {
+      var work = (e.work && (e.work.outstanding || e.work.set)) ? (e.work.outstanding || e.work.set) : "to be confirmed with your teacher";
+      var extra = "";
+      if (e.missedAssessment && e.missedAssessment.flag) {
+        extra = " (a " + (e.missedAssessment.type || "task") + " was missed — please " +
+          assessmentVerb(e.missedAssessment.type) + " it as soon as practical after you return, in negotiation with your teacher)";
+      }
+      return "  • " + e.className + " — " + teacherName(e.teacherId) + ": " + work + extra;
+    }).join("\n");
+    var body =
+      "Hi " + stu.firstName + ",\n\n" +
+      "You return tomorrow from " + s.tripName + ". Here is the work owed, per class:\n\n" + lines + "\n\n" +
+      "When you are back, go to each teacher, show them the completed work, and ask them to finalize your record.";
+    pushEmail("day_before_return", stu.email, "Work owed on your return — " + s.tripName, body,
+      { text: "See the latest on your trip page →", url: studentLink(sid) });
     markFired("day_before_return"); save();
-    toast("Student reminders sent to the Outbox.");
+    toast("Student reminder sent to the Outbox.");
   }
 
   function fireMorningReturn() {
     if (alreadyFired("morning_return")) { toast("Return reminders already sent."); return; }
     var s = snap();
-    teacherIdsWithEntries().forEach(function (tid) {
-      var t = tIdx()[tid];
-      var lines = entriesForTeacher(tid).map(function (e) {
-        var work = (e.work && (e.work.set || e.work.outstanding)) || "(no work recorded yet)";
-        return "  • " + studentName(e.studentId) + " — " + e.className + ": " + work;
-      }).join("\n");
-      var body =
-        "Hello " + (t ? t.name : tid) + ",\n\n" +
-        "These students have returned from " + s.tripName + ". The work you set was:\n\n" + lines + "\n\n" +
-        "Each student should show you the completed work; please sign off on their record in the Trip Absence Workflow. " +
-        "We ask that you complete this within three days (a request, not an enforced deadline).\n\n— " + SENDER;
-      pushEmail("morning_return", (t ? t.email : tid), "Sign-off needed: " + s.tripName, body);
-    });
+    var tid = exampleTeacherId(), t = tIdx()[tid];
+    var lines = entriesForTeacher(tid).map(function (e) {
+      var work = (e.work && (e.work.set || e.work.outstanding)) || "(no work recorded yet)";
+      return "  • " + studentName(e.studentId) + " — " + e.className + ": " + work;
+    }).join("\n");
+    var body =
+      "Dear " + t.name + ",\n\n" +
+      "These students have returned from " + s.tripName + ". The work you set was:\n\n" + lines + "\n\n" +
+      "Each student should show you the completed work; please sign off on their record. " +
+      "We ask that you complete this within three days (a request, not an enforced deadline).";
+    pushEmail("morning_return", t.email, "Sign-off needed — " + s.tripName, body,
+      { text: "Finalize each student's record →", url: teacherLink(tid) });
     markFired("morning_return"); save();
-    toast("Return reminders sent to the Outbox.");
+    toast("Return reminder sent to the Outbox.");
   }
 
   function fireFyi() {
     var s = snap(); if (!s) { toast("Approve a trip first.", true); return; }
     var contact = s.designatedContactTeacherId ? teacherName(s.designatedContactTeacherId) : "the trip's designated contact";
     var body =
-      "Hello HS Admin,\n\n" +
-      "For your information: " + s.tripName + " (" + s.program + ") runs " + tripDatesLine() + ". " +
-      "Departure " + fmtDateTime(s.departure) + "; return " + fmtDateTime(s.return) + ".\n" +
-      (s.academicNotes ? "Academic notes: " + s.academicNotes + "\n" : "") +
-      "Designated contact: " + contact + ". " + studentIdsWithEntries().length + " students affected across " +
-      teacherIdsWithEntries().length + " teachers.\n\n" +
-      "This is an informational notice only — not an approval request.\n\n— " + SENDER;
-    pushEmail("approved", HS_ADMIN, "FYI — upcoming trip: " + s.tripName, body);
+      "Dear HS Admin,\n\n" +
+      "For your information, the following trip has been finalized:\n\n" +
+      "  • Trip: " + s.tripName + " (" + s.program + ")\n" +
+      "  • Dates: " + fmtDateTime(s.departure) + " → " + fmtDateTime(s.return) + "\n" +
+      (s.academicNotes ? "  • Academic notes: " + s.academicNotes + "\n" : "") +
+      "  • Designated contact: " + contact + "\n" +
+      "  • Impact: " + studentIdsWithEntries().length + " students across " + teacherIdsWithEntries().length + " teachers\n\n" +
+      "This is an informational notice only — not an approval request.";
+    pushEmail("approved", HS_ADMIN, "Trip finalized — " + s.tripName, body,
+      { text: "View the full trip record →", url: adminLink() });
     save();
-    toast("FYI sent to HS Admin (see Outbox).");
+    toast("Notification sent to HS Admin (see Outbox).");
   }
 
   /* =====================================================================
@@ -921,22 +958,47 @@
   /* =====================================================================
      OUTBOX VIEW
      ===================================================================== */
+  function emailCardHtml(m) {
+    var linkHtml = m.link
+      ? '<p class="email__link"><a href="' + esc(m.link.url) + '" onclick="return false">' + esc(m.link.text) + "</a>" +
+        '<span class="email__link-note">demo link — does not navigate</span></p>'
+      : "";
+    return '<article class="email email--' + esc(m.stage) + '">' +
+      '<header class="email__head">' +
+      '<div class="email__subject">' + esc(m.subject) + "</div>" +
+      '<dl class="email__fields">' +
+      "<dt>From</dt><dd>" + esc(m.from) + "</dd>" +
+      "<dt>To</dt><dd>" + esc(m.to) + "</dd>" +
+      "<dt>Sent</dt><dd>" + esc(fmtDateTime(m.ts)) + "</dd>" +
+      "</dl></header>" +
+      '<div class="email__body">' + esc(m.body) + linkHtml + "</div></article>";
+  }
+
+  // Group consecutive mails by stage so each stage forms a tinted section.
   function renderOutbox() {
     var s = snap();
     var mails = (s && s.outbox) ? s.outbox.slice() : [];
-    var head = '<div class="view-head"><h1>Outbox</h1><p>Every notification the workflow “sent”. Nothing is actually emailed — these are rendered on screen only.</p></div>';
+    var head = '<div class="view-head"><h1>Outbox</h1><p>Every notification the workflow “sent”. Nothing is actually emailed — each is rendered here as an example. One example per stage.</p></div>';
     if (!mails.length) {
-      return head + '<div class="empty"><h3>No messages yet</h3><p>Approve a trip and use the stage buttons in the toolbar (or “Send FYI to HS Admin”) to generate notifications.</p></div>';
+      return head + '<div class="empty"><h3>No messages yet</h3><p>Finalize a trip, then use the stage buttons in the toolbar (or “Notify HS Admin”) to generate the example notifications.</p></div>';
     }
     mails.sort(function (a, b) { return a.ts < b.ts ? -1 : 1; });
-    var cards = mails.map(function (m) {
-      return '<div class="email"><div class="email__head">' +
-        '<div class="email__subject">' + esc(m.subject) + "</div>" +
-        '<div class="email__meta"><b>To:</b> ' + esc(m.to) + " &nbsp;·&nbsp; <b>From:</b> " + esc(m.from) +
-        " &nbsp;·&nbsp; " + esc(fmtDateTime(m.ts)) + ' &nbsp; <span class="chip email__stage">' + esc(STAGE_LABEL[m.stage] || m.stage) + "</span></div></div>" +
-        '<div class="email__body">' + esc(m.body) + "</div></div>";
+
+    // Bucket by stage, preserving first-seen order.
+    var order = [], byStage = {};
+    mails.forEach(function (m) {
+      if (!byStage[m.stage]) { byStage[m.stage] = []; order.push(m.stage); }
+      byStage[m.stage].push(m);
+    });
+
+    var sections = order.map(function (stage) {
+      var cards = byStage[stage].map(emailCardHtml).join("");
+      return '<section class="outbox-group outbox-group--' + esc(stage) + '">' +
+        '<h2 class="outbox-group__title">' + esc(STAGE_LABEL[stage] || stage) + "</h2>" +
+        cards + "</section>";
     }).join("");
-    return head + '<p class="help" style="margin:0 2px 12px">' + mails.length + " message(s), oldest first.</p>" + cards;
+
+    return head + sections;
   }
 
   /* =====================================================================

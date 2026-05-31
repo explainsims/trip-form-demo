@@ -2,31 +2,31 @@
   "teachers": [
     {
       "id": "T01",
-      "name": "Mr Demo Alvarez",
+      "name": "Mr Alvarez",
       "email": "alvarez@demo.example",
       "subject": "Mathematics"
     },
     {
       "id": "T02",
-      "name": "Ms Demo Bauer",
+      "name": "Ms Bauer",
       "email": "bauer@demo.example",
       "subject": "English"
     },
     {
       "id": "T03",
-      "name": "Mr Demo Castillo",
+      "name": "Mr Castillo",
       "email": "castillo@demo.example",
       "subject": "Science"
     },
     {
       "id": "T04",
-      "name": "Ms Demo Devi",
+      "name": "Ms Devi",
       "email": "devi@demo.example",
       "subject": "Humanities"
     },
     {
       "id": "T05",
-      "name": "Mr Demo Eriksson",
+      "name": "Mr Eriksson",
       "email": "eriksson@demo.example",
       "subject": "PE & Health"
     }
@@ -34,59 +34,59 @@
   "students": [
     {
       "id": "S0001",
-      "firstName": "Demo",
-      "lastName": "Student 01",
+      "firstName": "Maya",
+      "lastName": "Bennett",
       "grade": 9,
-      "email": "s0001@demo.example"
+      "email": "maya.bennett@demo.example"
     },
     {
       "id": "S0002",
-      "firstName": "Demo",
-      "lastName": "Student 02",
+      "firstName": "Liam",
+      "lastName": "Castellano",
       "grade": 10,
-      "email": "s0002@demo.example"
+      "email": "liam.castellano@demo.example"
     },
     {
       "id": "S0003",
-      "firstName": "Demo",
-      "lastName": "Student 03",
+      "firstName": "Aisha",
+      "lastName": "Rahman",
       "grade": 11,
-      "email": "s0003@demo.example"
+      "email": "aisha.rahman@demo.example"
     },
     {
       "id": "S0004",
-      "firstName": "Demo",
-      "lastName": "Student 04",
+      "firstName": "Noah",
+      "lastName": "Whitfield",
       "grade": 9,
-      "email": "s0004@demo.example"
+      "email": "noah.whitfield@demo.example"
     },
     {
       "id": "S0005",
-      "firstName": "Demo",
-      "lastName": "Student 05",
+      "firstName": "Sofia",
+      "lastName": "Marchetti",
       "grade": 12,
-      "email": "s0005@demo.example"
+      "email": "sofia.marchetti@demo.example"
     },
     {
       "id": "S0006",
-      "firstName": "Demo",
-      "lastName": "Student 06",
+      "firstName": "Ethan",
+      "lastName": "Okafor",
       "grade": 10,
-      "email": "s0006@demo.example"
+      "email": "ethan.okafor@demo.example"
     },
     {
       "id": "S0007",
-      "firstName": "Demo",
-      "lastName": "Student 07",
+      "firstName": "Hannah",
+      "lastName": "Lindqvist",
       "grade": 11,
-      "email": "s0007@demo.example"
+      "email": "hannah.lindqvist@demo.example"
     },
     {
       "id": "S0008",
-      "firstName": "Demo",
-      "lastName": "Student 08",
+      "firstName": "Daniel",
+      "lastName": "Yamamoto",
       "grade": 12,
-      "email": "s0008@demo.example"
+      "email": "daniel.yamamoto@demo.example"
     }
   ],
   "timetable": [
@@ -105,25 +105,46 @@
       "teacherId": "T01"
     },
     {
-      "studentId": "S0003",
+      "studentId": "S0005",
       "day": "Mon",
       "period": 1,
       "className": "Algebra I",
       "teacherId": "T01"
     },
     {
-      "studentId": "S0004",
+      "studentId": "S0008",
+      "day": "Mon",
+      "period": 1,
+      "className": "Algebra I",
+      "teacherId": "T01"
+    },
+    {
+      "studentId": "S0001",
       "day": "Tue",
       "period": 2,
       "className": "Biology",
       "teacherId": "T03"
     },
     {
-      "studentId": "S0005",
+      "studentId": "S0003",
       "day": "Tue",
       "period": 2,
       "className": "Biology",
       "teacherId": "T03"
+    },
+    {
+      "studentId": "S0006",
+      "day": "Tue",
+      "period": 2,
+      "className": "Biology",
+      "teacherId": "T03"
+    },
+    {
+      "studentId": "S0004",
+      "day": "Wed",
+      "period": 3,
+      "className": "English 9",
+      "teacherId": "T02"
     },
     {
       "studentId": "S0006",
@@ -133,7 +154,7 @@
       "teacherId": "T02"
     },
     {
-      "studentId": "S0007",
+      "studentId": "S0008",
       "day": "Wed",
       "period": 3,
       "className": "English 9",
@@ -154,7 +175,7 @@
       "teacherId": "T01"
     },
     {
-      "studentId": "S0004",
+      "studentId": "S0005",
       "day": "Thu",
       "period": 1,
       "className": "Algebra I",
@@ -175,25 +196,11 @@
       "teacherId": "T03"
     },
     {
-      "studentId": "S0005",
+      "studentId": "S0006",
       "day": "Thu",
       "period": 2,
       "className": "Biology",
       "teacherId": "T03"
-    },
-    {
-      "studentId": "S0007",
-      "day": "Thu",
-      "period": 2,
-      "className": "Biology",
-      "teacherId": "T03"
-    },
-    {
-      "studentId": "S0002",
-      "day": "Thu",
-      "period": 3,
-      "className": "English 9",
-      "teacherId": "T02"
     },
     {
       "studentId": "S0004",
@@ -203,14 +210,21 @@
       "teacherId": "T02"
     },
     {
-      "studentId": "S0006",
+      "studentId": "S0008",
       "day": "Thu",
       "period": 3,
       "className": "English 9",
       "teacherId": "T02"
     },
     {
-      "studentId": "S0003",
+      "studentId": "S0002",
+      "day": "Thu",
+      "period": 4,
+      "className": "World History",
+      "teacherId": "T04"
+    },
+    {
+      "studentId": "S0004",
       "day": "Thu",
       "period": 4,
       "className": "World History",
@@ -224,108 +238,87 @@
       "teacherId": "T04"
     },
     {
-      "studentId": "S0001",
+      "studentId": "S0003",
       "day": "Thu",
       "period": 5,
       "className": "PE",
       "teacherId": "T05"
     },
     {
-      "studentId": "S0006",
+      "studentId": "S0004",
       "day": "Thu",
       "period": 5,
       "className": "PE",
       "teacherId": "T05"
+    },
+    {
+      "studentId": "S0008",
+      "day": "Thu",
+      "period": 5,
+      "className": "PE",
+      "teacherId": "T05"
+    },
+    {
+      "studentId": "S0003",
+      "day": "Fri",
+      "period": 1,
+      "className": "English 11",
+      "teacherId": "T02"
     },
     {
       "studentId": "S0007",
-      "day": "Thu",
-      "period": 5,
-      "className": "PE",
-      "teacherId": "T05"
+      "day": "Fri",
+      "period": 1,
+      "className": "English 11",
+      "teacherId": "T02"
     },
     {
       "studentId": "S0001",
       "day": "Fri",
-      "period": 1,
-      "className": "English 9",
-      "teacherId": "T02"
-    },
-    {
-      "studentId": "S0003",
-      "day": "Fri",
-      "period": 1,
-      "className": "English 9",
-      "teacherId": "T02"
-    },
-    {
-      "studentId": "S0005",
-      "day": "Fri",
       "period": 2,
-      "className": "Algebra I",
+      "className": "Geometry",
       "teacherId": "T01"
     },
     {
-      "studentId": "S0007",
+      "studentId": "S0003",
       "day": "Fri",
       "period": 2,
-      "className": "Algebra I",
+      "className": "Geometry",
       "teacherId": "T01"
     },
     {
       "studentId": "S0002",
       "day": "Fri",
       "period": 3,
-      "className": "Biology",
+      "className": "Chemistry",
       "teacherId": "T03"
     },
     {
-      "studentId": "S0006",
+      "studentId": "S0007",
       "day": "Fri",
       "period": 3,
-      "className": "Biology",
+      "className": "Chemistry",
       "teacherId": "T03"
-    },
-    {
-      "studentId": "S0003",
-      "day": "Fri",
-      "period": 4,
-      "className": "PE",
-      "teacherId": "T05"
-    },
-    {
-      "studentId": "S0004",
-      "day": "Fri",
-      "period": 4,
-      "className": "PE",
-      "teacherId": "T05"
     },
     {
       "studentId": "S0001",
       "day": "Fri",
       "period": 5,
-      "className": "World History",
+      "className": "Geography",
       "teacherId": "T04"
     },
     {
-      "studentId": "S0002",
+      "studentId": "S0007",
       "day": "Fri",
       "period": 5,
-      "className": "World History",
-      "teacherId": "T04"
-    },
-    {
-      "studentId": "S0004",
-      "day": "Fri",
-      "period": 5,
-      "className": "World History",
+      "className": "Geography",
       "teacherId": "T04"
     },
     {
       "studentId": "S0006",
       "day": "Fri",
       "period": 5,
-      "className": "World History",
+      "className": "Geography",
       "teacherId": "T04"
     }
   ]
