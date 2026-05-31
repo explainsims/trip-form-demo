@@ -24,21 +24,29 @@
   var STAGE_ORDER = ["approved", "week_out", "departure", "day_before_return", "morning_return"];
   var STAGE_LABEL = {
     none: "Not started",
-    approved: "Approved & frozen",
+    approved: "Finalized",
     week_out: "Week-out notice sent",
     departure: "Morning of departure",
     day_before_return: "Day before return",
     morning_return: "Morning of return"
   };
   var STAGE_BTN = {
-    approved: "Approve & freeze",
+    approved: "HS Admin Notified",
+    week_out: "Week-out notice",
+    departure: "Morning of departure",
+    day_before_return: "Day before return",
+    morning_return: "Morning of return"
+  };
+  // Outbox section titles per stage.
+  var STAGE_OUTBOX = {
+    approved: "HS Admin Notified",
     week_out: "Week-out notice",
     departure: "Morning of departure",
     day_before_return: "Day before return",
     morning_return: "Morning of return"
   };
   var CONTACT_OPTIONS = [
-    { value: "never_saw_me",   label: "Never saw me",                hint: "Default — silence reads as non-compliance." },
+    { value: "never_saw_me",   label: "Never saw me",                hint: "" },
     { value: "saw_me",         label: "Saw me in person",            hint: "Student arranged work face to face." },
     { value: "messaged_me",    label: "Emailed or messaged me",      hint: "Arranged remotely before leaving." },
     { value: "contacted_trip", label: "Contacted me from the trip",  hint: "Reached out while away." }
@@ -48,6 +56,7 @@
   /* ---- state + persistence ------------------------------------------- */
   var state = {
     view: "director",
+    teacherTab: "pre",
     viewingTeacherId: (FX.teachers && FX.teachers[0] && FX.teachers[0].id) || "",
     viewingStudentId: (FX.students && FX.students[0] && FX.students[0].id) || "",
     director: { signedIn: false, tab: "approve", loadedTripId: "", source: "", parse: null, designatedContactId: "" },
@@ -249,8 +258,8 @@
     if (!e) return "red";
     if (e.finalized) return "green";
     var touched = e.contactStatus !== "never_saw_me" ||
-      (e.work && (e.work.set || e.work.outstanding)) ||
-      e.completedFormBeforeTrip || e.completedWork ||
+      (e.work && e.work.set) ||
+      e.completedWork === true ||
       (e.missedAssessment && e.missedAssessment.flag && e.assessmentNegotiated === true);
     return touched ? "amber" : "red";
   }
@@ -396,7 +405,7 @@
       "These students leave today on " + s.tripName + " and will be absent for the next " + n + " school day(s):\n\n" +
       classLineForTeacher(tid) + "\n\n" +
       "This is the last call to record the work you have set for them. Silence is treated as non-compliance, " +
-      "so please log even “no work set”.";
+      "so please record something, even to indicate “no work set”.";
     pushEmail("departure", t.email, "Leaving today — " + s.tripName, body,
       { text: "Record work set before they leave →", url: teacherLink(tid) });
     markFired("departure"); save();
@@ -445,18 +454,38 @@
     toast("Return reminder sent to the Outbox.");
   }
 
+  // Fixed-width text table of the confirmed (travelling) students for the
+  // HS Admin notification. Columns: No., ID, Last, First, Grade.
+  function confirmedTableText() {
+    var parse = state.director.parse;
+    var rows = (parse && parse.rows ? parse.rows : []).filter(function (r) { return r.matched; });
+    var header = ["No.", "ID", "Last", "First", "Gr"];
+    var data = rows.map(function (r) { return [r.no, r.id, r.last, r.first, r.grade]; });
+    var all = [header].concat(data);
+    var widths = header.map(function (_, c) {
+      return Math.max.apply(null, all.map(function (row) { return String(row[c] || "").length; }));
+    });
+    function fmtRow(row) {
+      return row.map(function (cell, c) {
+        var v = String(cell || "");
+        return v + new Array(widths[c] - v.length + 1).join(" ");
+      }).join("  ");
+    }
+    var sep = widths.map(function (w) { return new Array(w + 1).join("-"); }).join("  ");
+    return [fmtRow(header), sep].concat(data.map(fmtRow)).join("\n");
+  }
+
   function fireFyi() {
     var s = snap(); if (!s) { toast("Approve a trip first.", true); return; }
-    var contact = s.designatedContactTeacherId ? teacherName(s.designatedContactTeacherId) : "the trip's designated contact";
+    var contact = s.designatedContactTeacherId ? teacherName(s.designatedContactTeacherId) : "Director (you)";
     var body =
       "Dear HS Admin,\n\n" +
       "For your information, the following trip has been finalized:\n\n" +
       "  • Trip: " + s.tripName + " (" + s.program + ")\n" +
       "  • Dates: " + fmtDateTime(s.departure) + " → " + fmtDateTime(s.return) + "\n" +
       (s.academicNotes ? "  • Academic notes: " + s.academicNotes + "\n" : "") +
-      "  • Designated contact: " + contact + "\n" +
-      "  • Impact: " + studentIdsWithEntries().length + " students across " + teacherIdsWithEntries().length + " teachers\n\n" +
-      "This is an informational notice only — not an approval request.";
+      "  • Trip contact: " + contact + "\n\n" +
+      "Confirmed students travelling:\n\n" + confirmedTableText();
     pushEmail("approved", HS_ADMIN, "Trip finalized — " + s.tripName, body,
       { text: "View the full trip record →", url: adminLink() });
     save();
@@ -627,7 +656,7 @@
 
   function renderDirector() {
     if (!state.director.signedIn) {
-      return '<div class="view-head"><h1>Director</h1><p>Athletics program · trip approvals</p></div>' +
+      return '<div class="view-head"><h1>Athletics Director</h1></div>' +
         '<div class="card"><div class="card__head"><div class="card__title">Sign in</div>' +
         '<p class="card__sub">Stands in for Google sign-in — no real account is used.</p></div>' +
         '<div class="card__body"><button type="button" class="btn btn--primary" data-action="dir-signin">Sign in as Athletics Director</button></div></div>';
@@ -635,9 +664,9 @@
 
     var d = state.director;
     var tab = d.tab || "approve";
-    var head = '<div class="view-head"><h1>Director</h1><p>Signed in · scoped to the <b>Athletics</b> program</p></div>' +
+    var head = '<div class="view-head"><h1>Athletics Director</h1></div>' +
       '<div class="tabs" role="group" aria-label="Director tabs">' +
-      '<button type="button" class="tabs__btn" data-action="dir-tab" data-tab="approve" aria-pressed="' + (tab === "approve") + '">Approve a trip</button>' +
+      '<button type="button" class="tabs__btn" data-action="dir-tab" data-tab="approve" aria-pressed="' + (tab === "approve") + '">Finalize a trip</button>' +
       '<button type="button" class="tabs__btn" data-action="dir-tab" data-tab="dashboard" aria-pressed="' + (tab === "dashboard") + '">Dashboard</button></div>';
 
     if (tab === "dashboard") return head + dashboardHtml();
@@ -662,7 +691,7 @@
       '<span class="source__main"><span class="source__title">' + (loaded ? "Reload sample trip sheet" : "Load sample trip sheet") + "</span>" +
       '<span class="source__desc">T24 – MRISA Sr Soccer 2026</span></span>' +
       "</button></div>" +
-      '<p class="help">Drive browsing is stubbed for this demo — use the sample sheet, which loads exactly as a real selection would.</p>' +
+      '<p class="help">Drive browsing is disabled in this demo — use the sample sheet, which loads exactly as a real selection would.</p>' +
       "</div></div>";
   }
 
@@ -672,11 +701,11 @@
     var contactOpts = '<option value="">Director (you)</option>' + (FX.teachers || []).map(function (t) {
       return '<option value="' + esc(t.id) + '"' + (t.id === d.designatedContactId ? " selected" : "") + ">" + esc(t.name) + " (coach)</option>";
     }).join("");
-    return '<div class="card"><div class="card__head"><div class="card__title">Designated contact &amp; approval</div></div>' +
+    return '<div class="card"><div class="card__head"><div class="card__title">Trip contact &amp; finalization</div></div>' +
       '<div class="card__body">' +
-      '<label class="field-label" for="dir-contact">Designated contact for this trip</label>' +
+      '<label class="field-label" for="dir-contact">Designated contact travelling on this trip</label>' +
       '<select class="select" id="dir-contact" data-action="dir-contact">' + contactOpts + "</select>" +
-      '<p class="help">The Director or a coach travelling with the team.</p>' +
+      '<p class="help">After contact is selected, finalize the trip using the button below:</p>' +
       '<button type="button" class="btn btn--primary btn--block" data-action="approve" style="margin-top:14px"' + (ready ? "" : " disabled") + ">Finalize</button>" +
       (ready ? "" : '<p class="help" style="text-align:center">Load a trip sheet to enable approval.</p>') +
       "</div></div>";
@@ -685,11 +714,10 @@
   function frozenCard() {
     var s = snap(); if (!s) return "";
     return '<div class="card"><div class="card__head"><div class="card__title">Notify HS Admin</div>' +
-      '<p class="card__sub">' + esc(s.tripName) + " from " + fmtDate(s.departure) + " to " + fmtDate(s.return) + " has been finalized.</p></div>" +
-      '<div class="card__body"><dl class="kv">' +
-      "<div><dt>Students affected</dt><dd>" + studentIdsWithEntries().length + "</dd></div>" +
-      "<div><dt>Teachers affected</dt><dd>" + teacherIdsWithEntries().length + "</dd></div>" +
-      "<div><dt>Designated contact</dt><dd>" + esc(s.designatedContactTeacherId ? teacherName(s.designatedContactTeacherId) : "Director (you)") + "</dd></div>" +
+      '<p class="card__sub"><b>' + esc(s.tripName) + "</b> from <b>" + fmtDate(s.departure) + "</b> to <b>" + fmtDate(s.return) + "</b> has been finalized.</p></div>" +
+      '<div class="card__body"><dl class="kv kv--center">' +
+      "<div><dt>Students travelling</dt><dd>" + studentIdsWithEntries().length + "</dd></div>" +
+      "<div><dt>Trip contact</dt><dd>" + esc(s.designatedContactTeacherId ? teacherName(s.designatedContactTeacherId) : "Director (you)") + "</dd></div>" +
       '</dl><button type="button" class="btn btn--primary btn--block" data-action="fyi" style="margin-top:14px">Notify HS Admin</button>' +
       "</div></div>";
   }
@@ -757,7 +785,7 @@
     var tid = state.viewingTeacherId;
     var s = snap();
     var head = '<div class="view-head"><h1>Teacher · ' + esc(teacherName(tid)) + "</h1>" +
-      "<p>" + (s ? "Your students on <b>" + esc(s.tripName) + "</b> — only the classes you teach." : "Trip absences for your classes.") + "</p></div>";
+      "<p>" + (s ? "Your students who are travelling for <b>" + esc(s.tripName) + "</b>" : "Trip absences for your classes.") + "</p></div>";
     if (!s) {
       return head + '<div class="empty"><h3>No approved trip yet</h3><p>Ask the Director to approve a trip, then your affected students will appear here.</p>' +
         '<p><button type="button" class="btn" data-action="goto" data-view="director">Go to Director view</button></p></div>';
@@ -767,6 +795,11 @@
     if (!sids.length) {
       return head + '<div class="empty"><h3>No affected students</h3><p>None of your classes are disrupted by ' + esc(s.tripName) + ".</p></div>";
     }
+
+    var tab = state.teacherTab || "pre";
+    var tabs = '<div class="tabs" role="group" aria-label="Teacher tabs">' +
+      '<button type="button" class="tabs__btn" data-action="teacher-tab" data-tab="pre" aria-pressed="' + (tab === "pre") + '">Pre-trip</button>' +
+      '<button type="button" class="tabs__btn" data-action="teacher-tab" data-tab="post" aria-pressed="' + (tab === "post") + '">Post-trip</button></div>';
 
     // ensure a valid selection
     if (sids.indexOf(state.teacherSelectedStudent) === -1) state.teacherSelectedStudent = sids[0];
@@ -780,12 +813,13 @@
         pillHtml(studentAggForTeacher(sid, tid)) + "</button>";
     }).join("");
 
-    var left = '<div class="card"><div class="card__head"><div class="card__title">Affected students <span class="chip">' + sids.length + "</span></div>" +
-      '<p class="card__sub">Default status is <b>“Not actioned”</b> — silence reads as non-compliance.</p></div>' +
+    var left = '<div class="card"><div class="card__head"><div class="card__title">Affected students <span class="chip">' + sids.length + "</span></div></div>" +
       '<div class="card__body list">' + list + "</div></div>";
 
-    var right = teacherEntryPanel(sel, tid) + closeoutTemplatesHtml(sel);
-    return head + '<div class="split"><div>' + left + "</div><div class=\"stack\">" + right + "</div></div>";
+    var right = (tab === "post")
+      ? postTripPanel(sel, tid) + closeoutTemplatesHtml(sel)
+      : teacherEntryPanel(sel, tid);
+    return head + tabs + '<div class="split"><div>' + left + "</div><div class=\"stack\">" + right + "</div></div>";
   }
 
   function ynBtn(key, q, current, yn) {
@@ -795,52 +829,72 @@
       (yn === "yes" ? "Yes" : "No") + "</button>";
   }
 
+  // ---- Pre-trip: contact + work to be completed + assessment flag --------
   function classBlock(e) {
     var key = entryKey(e);
     var contact = CONTACT_OPTIONS.map(function (o) {
+      var hint = o.hint ? '<span class="opt__hint">' + esc(o.hint) + "</span>" : "";
       return '<label class="opt"><input type="radio" name="contact-' + esc(key) + '" data-action="set-contact" data-key="' +
         esc(key) + '" value="' + o.value + '"' + (e.contactStatus === o.value ? " checked" : "") + ">" +
-        '<span><span class="opt__text">' + esc(o.label) + '</span><span class="opt__hint">' + esc(o.hint) + "</span></span></label>";
+        '<span><span class="opt__text">' + esc(o.label) + "</span>" + hint + "</span></label>";
     }).join("");
 
     var assessment =
       '<label class="opt"><input type="checkbox" data-action="toggle-missed" data-key="' + esc(key) + '"' +
-      (e.missedAssessment.flag ? " checked" : "") + '><span class="opt__text">An assessment task was missed during the absence</span></label>' +
+      (e.missedAssessment.flag ? " checked" : "") + '><span class="opt__text">An assessment task will be missed during the absence</span></label>' +
       (e.missedAssessment.flag ?
         '<label class="field-label" for="atype-' + esc(key) + '" style="margin-top:6px">Assessment type</label>' +
         '<select class="select" id="atype-' + esc(key) + '" data-action="set-atype" data-key="' + esc(key) + '">' +
         ASSESSMENT_TYPES.map(function (t) { return '<option' + (e.missedAssessment.type === t ? " selected" : "") + ">" + esc(t) + "</option>"; }).join("") +
-        '</select><p class="help">Drives the student reminder verb: a Test → “sit”; everything else → “submit/complete”.</p>' : "");
+        "</select>" : "");
 
-    var threeQ =
-      '<fieldset style="margin-top:12px"><legend>Finalize record — the three facts</legend><div class="three-q">' +
-      '<div class="q"><span>1. Form completed <b>before</b> the trip?</span><span class="yn">' + ynBtn(key, "form", e.completedFormBeforeTrip, "yes") + ynBtn(key, "form", e.completedFormBeforeTrip, "no") + "</span></div>" +
-      '<div class="q"><span>2. Work completed <b>while away</b>?</span><span class="yn">' + ynBtn(key, "work", e.completedWork, "yes") + ynBtn(key, "work", e.completedWork, "no") + "</span></div>" +
-      (e.missedAssessment.flag ? '<div class="q"><span>3. Make-up <b>negotiated</b> for the missed ' + esc(e.missedAssessment.type || "task") + "?</span><span class=\"yn\">" + ynBtn(key, "neg", e.assessmentNegotiated, "yes") + ynBtn(key, "neg", e.assessmentNegotiated, "no") + "</span></div>" : "") +
-      "</div></fieldset>";
-
-    var finalizeRow = '<div class="row" style="margin-top:12px;justify-content:space-between">' +
+    var actionRow = '<div class="row" style="margin-top:12px;justify-content:space-between">' +
       "<div>" + pillHtml(statusOf(e)) + "</div><div class=\"row\">" +
-      '<button type="button" class="btn btn--sm" data-action="copy-across" data-key="' + esc(key) + '">Copy across my students</button>' +
+      '<button type="button" class="btn btn--sm" data-action="copy-across" data-key="' + esc(key) + '">Copy work for all students in this class</button>' +
       (e.finalized
         ? '<button type="button" class="btn btn--sm" data-action="unfinalize" data-key="' + esc(key) + '">Reopen</button>'
-        : '<button type="button" class="btn btn--sm btn--primary" data-action="finalize" data-key="' + esc(key) + '">Finalize</button>') +
+        : '<button type="button" class="btn btn--sm btn--primary" data-action="finalize" data-key="' + esc(key) + '">Submit</button>') +
       "</div></div>";
 
     return '<fieldset><legend>' + esc(e.className) + '</legend>' +
       '<div class="field-label">Contact status</div>' + contact +
-      '<label class="field-label" for="wset-' + esc(key) + '" style="margin-top:10px">Work set</label>' +
-      '<textarea id="wset-' + esc(key) + '" data-action="set-work" data-key="' + esc(key) + '" data-field="set" placeholder="What you set for this student…">' + esc(e.work.set) + "</textarea>" +
-      '<label class="field-label" for="wout-' + esc(key) + '" style="margin-top:8px">Still outstanding</label>' +
-      '<textarea id="wout-' + esc(key) + '" data-action="set-work" data-key="' + esc(key) + '" data-field="outstanding" placeholder="What is still owed…">' + esc(e.work.outstanding) + "</textarea>" +
-      '<div style="margin-top:10px">' + assessment + "</div>" + threeQ + finalizeRow + "</fieldset>";
+      '<label class="field-label" for="wset-' + esc(key) + '" style="margin-top:10px">Work to be completed</label>' +
+      '<textarea id="wset-' + esc(key) + '" data-action="set-work" data-key="' + esc(key) + '" data-field="set">' + esc(e.work.set) + "</textarea>" +
+      '<div style="margin-top:10px">' + assessment + "</div>" + actionRow + "</fieldset>";
   }
 
   function teacherEntryPanel(sid, tid) {
     var entries = entriesForTeacher(tid).filter(function (e) { return e.studentId === sid; });
     var blocks = entries.map(classBlock).join('<div style="height:12px"></div>');
+    return '<div class="card"><div class="card__head"><div class="card__title">' + esc(studentName(sid)) + "</div></div>" +
+      '<div class="card__body">' + blocks + "</div></div>";
+  }
+
+  // ---- Post-trip: completion / make-up sign-off ("finalize record") ------
+  function postClassBlock(e) {
+    var key = entryKey(e);
+    var rows =
+      '<div class="q"><span>Work completed while away?</span><span class="yn">' +
+        ynBtn(key, "work", e.completedWork, "yes") + ynBtn(key, "work", e.completedWork, "no") + "</span></div>" +
+      (e.missedAssessment.flag
+        ? '<div class="q"><span>Make-up negotiated for the missed ' + esc(e.missedAssessment.type || "task") + "?</span><span class=\"yn\">" +
+          ynBtn(key, "neg", e.assessmentNegotiated, "yes") + ynBtn(key, "neg", e.assessmentNegotiated, "no") + "</span></div>"
+        : "");
+    var finalizeRow = '<div class="row" style="margin-top:12px;justify-content:space-between">' +
+      "<div>" + pillHtml(statusOf(e)) + "</div><div>" +
+      (e.finalized
+        ? '<button type="button" class="btn btn--sm" data-action="unfinalize" data-key="' + esc(key) + '">Reopen</button>'
+        : '<button type="button" class="btn btn--sm btn--primary" data-action="finalize" data-key="' + esc(key) + '">Submit</button>') +
+      "</div></div>";
+    return '<fieldset><legend>' + esc(e.className) + '</legend>' +
+      '<div class="three-q">' + rows + "</div>" + finalizeRow + "</fieldset>";
+  }
+
+  function postTripPanel(sid, tid) {
+    var entries = entriesForTeacher(tid).filter(function (e) { return e.studentId === sid; });
+    var blocks = entries.map(postClassBlock).join('<div style="height:12px"></div>');
     return '<div class="card"><div class="card__head"><div class="card__title">' + esc(studentName(sid)) + "</div>" +
-      '<p class="card__sub">Two buckets: how they contacted you, and the work. Enter once, then “Copy across my students” for the rest of the group.</p></div>' +
+      '<p class="card__sub">Confirm completion and sign off each class once the student is back.</p></div>' +
       '<div class="card__body">' + blocks + "</div></div>";
   }
 
@@ -916,7 +970,6 @@
       var es = byTeacher[tid];
       var classes = es.map(function (e) {
         var workSet = (e.work && e.work.set) ? e.work.set : "To be confirmed with your teacher.";
-        var outstanding = (e.work && e.work.outstanding) ? e.work.outstanding : "—";
         var assess = (e.missedAssessment && e.missedAssessment.flag)
           ? '<div class="note-box" style="margin-top:8px">A <b>' + esc(e.missedAssessment.type || "task") + "</b> was missed. Please <b>" +
             esc(assessmentVerb(e.missedAssessment.type)) + "</b> it as soon as practical after you return, in negotiation with your teacher.</div>"
@@ -924,9 +977,7 @@
         return '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">' +
           '<div class="row" style="justify-content:space-between"><b>' + esc(e.className) + "</b>" + pillHtml(statusOf(e)) + "</div>" +
           '<dl class="kv" style="margin-top:8px">' +
-          "<div><dt>Work set</dt><dd>" + esc(workSet) + "</dd></div>" +
-          "<div><dt>Still outstanding</dt><dd>" + esc(outstanding) + "</dd></div>" +
-          "<div><dt>Form done before trip</dt><dd>" + factIcon(e.completedFormBeforeTrip) + "</dd></div>" +
+          "<div><dt>Work to be completed</dt><dd>" + esc(workSet) + "</dd></div>" +
           "<div><dt>Work completed</dt><dd>" + factIcon(e.completedWork) + "</dd></div>" +
           (e.missedAssessment.flag ? "<div><dt>Make-up negotiated</dt><dd>" + factIcon(e.assessmentNegotiated) + "</dd></div>" : "") +
           "</dl>" + assess + "</div>";
@@ -994,7 +1045,7 @@
     var sections = order.map(function (stage) {
       var cards = byStage[stage].map(emailCardHtml).join("");
       return '<section class="outbox-group outbox-group--' + esc(stage) + '">' +
-        '<h2 class="outbox-group__title">' + esc(STAGE_LABEL[stage] || stage) + "</h2>" +
+        '<h2 class="outbox-group__title">' + esc(STAGE_OUTBOX[stage] || STAGE_LABEL[stage] || stage) + "</h2>" +
         cards + "</section>";
     }).join("");
 
@@ -1009,7 +1060,7 @@
     fn(e); e.updatedAt = new Date().toISOString(); save(); return e;
   }
   function doStage(stage) {
-    if (stage === "approved") { if (approve()) { toast("Approved & frozen."); } }
+    if (stage === "approved") { if (approve()) { toast("Trip finalized."); } }
     else if (!snap()) { toast("Approve a trip first.", true); }
     else if (stage === "week_out") fireWeekOut();
     else if (stage === "departure") fireDeparture();
@@ -1052,10 +1103,11 @@
       if (a === "goto") { setView(el.getAttribute("data-view")); scrollTop(); return; }
       if (a === "dir-signin") { state.director.signedIn = true; save(); render(); return; }
       if (a === "dir-tab") { state.director.tab = el.getAttribute("data-tab"); save(); render(); return; }
-      if (a === "drive-open") { toast("Drive browsing is stubbed for this demo — load the sample sheet."); return; }
+      if (a === "drive-open") { toast("Drive browsing is disabled in this demo — load the sample sheet."); return; }
       if (a === "load-sample") { loadSample(); scrollTop(); return; }
       if (a === "approve") { if (approve()) { state.director.tab = "approve"; render(); toast("Trip finalized."); scrollTop(); } return; }
       if (a === "fyi") { fireFyi(); render(); scrollTop(); return; }
+      if (a === "teacher-tab") { state.teacherTab = el.getAttribute("data-tab"); save(); render(); return; }
       if (a === "teacher-select") { state.teacherSelectedStudent = el.getAttribute("data-sid"); save(); render(); return; }
       if (a === "set-q") {
         var q = el.getAttribute("data-q"), yn = el.getAttribute("data-yn") === "yes";
@@ -1072,7 +1124,7 @@
         var n = 0;
         (snap().entries || []).forEach(function (en) {
           if (en.teacherId === src.teacherId && en.className === src.className && en.studentId !== src.studentId) {
-            en.work = { set: src.work.set, outstanding: src.work.outstanding };
+            en.work = { set: src.work.set, outstanding: "" };
             en.missedAssessment = { flag: src.missedAssessment.flag, type: src.missedAssessment.type };
             en.updatedAt = new Date().toISOString(); n++;
           }
@@ -1101,7 +1153,12 @@
     var a = t.getAttribute && t.getAttribute("data-action");
     if (!a) return;
     var key = t.getAttribute("data-key");
-    if (a === "dir-contact") { state.director.designatedContactId = t.value; save(); render(); }
+    if (a === "dir-contact") {
+      state.director.designatedContactId = t.value;
+      // Keep an already-finalized snapshot's contact in sync with the picker.
+      if (snap()) snap().designatedContactTeacherId = t.value;
+      save(); render();
+    }
     else if (a === "set-contact") { withEntry(key, function (en) { en.contactStatus = t.value; }); render(); }
     else if (a === "set-atype") { withEntry(key, function (en) { en.missedAssessment.type = t.value; }); render(); }
     else if (a === "toggle-missed") {
