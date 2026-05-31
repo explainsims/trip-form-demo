@@ -406,7 +406,7 @@
       "Dear " + t.name + ",\n\n" +
       "These students leave today on " + s.tripName + " and will be absent for the next " + n + " school day(s):\n\n" +
       classLineForTeacher(tid) + "\n\n" +
-      "A reminder to complete the student travel form for all students.";
+      "This is a reminder to complete the trip absence form for all your students.";
     pushEmail("departure", t.email, "Leaving today — " + s.tripName, body,
       { text: "Record work set before they leave →", url: teacherLink(tid) });
     markFired("departure"); save();
@@ -570,7 +570,7 @@
     return '<div class="table-wrap"><table><thead><tr>' +
       "<th>No.</th><th>ID</th><th>Last</th><th>First</th><th>Grade</th><th>Confirmed</th>" +
       "</tr></thead><tbody>" + rows + "</tbody></table></div>" +
-      '<div class="sheet-reload">Make any required changes on original Google Sheet and reload to confirm</div>';
+      '<div class="sheet-reload">Make any required changes on the original Google Sheet, then reload to confirm.</div>';
   }
 
   // Trip details prepopulated from the loaded sheet, shown above the roster.
