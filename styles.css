@@ -206,6 +206,19 @@ tr.not-travelling .cell-flag { color: var(--red); }
 .pill--amber { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-line); } .pill--amber .dot { background: var(--amber); }
 .pill--green { background: var(--green-bg); color: var(--green); border-color: var(--green-line); } .pill--green .dot { background: var(--green); }
 .pill--neutral { background: var(--surface-2); color: var(--ink-soft); border-color: var(--border); } .pill--neutral .dot { background: var(--ink-faint); }
+.pill--orange { background: #fbeede; color: #9a5212; border-color: #f0d2af; } .pill--orange .dot { background: #d9731a; }
+
+/* Student view — per-subject facts on one line, post-return facts boxed */
+.subject { padding-top: 12px; }
+.subject--sep { margin-top: 12px; border-top: 1px solid var(--border); }
+.subject__name { font-weight: 700; font-size: .95rem; margin-bottom: 8px; }
+.subject__facts { display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; }
+.field-mini dt { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); font-weight: 600; margin-bottom: 3px; }
+.field-mini dd { margin: 0; font-weight: 600; font-size: .92rem; }
+.field-mini--grow { flex: 1 1 200px; min-width: 160px; }
+/* Pale-yellow box: these are completed after the student returns. */
+.post-return { display: flex; flex-wrap: wrap; gap: 16px; background: #fbf6e3;
+  border: 1px solid #ecdfb8; border-radius: var(--radius-sm); padding: 9px 12px; }
 
 .chip { display: inline-block; background: var(--surface-2); border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: 2px 8px; font-size: .76rem; color: var(--ink-soft); font-weight: 500; }

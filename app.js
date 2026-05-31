@@ -404,8 +404,7 @@
       "Dear " + t.name + ",\n\n" +
       "These students leave today on " + s.tripName + " and will be absent for the next " + n + " school day(s):\n\n" +
       classLineForTeacher(tid) + "\n\n" +
-      "This is the last call to record the work you have set for them. Silence is treated as non-compliance, " +
-      "so please record something, even to indicate “no work set”.";
+      "A reminder to complete the student travel form for all students.";
     pushEmail("departure", t.email, "Leaving today — " + s.tripName, body,
       { text: "Record work set before they leave →", url: teacherLink(tid) });
     markFired("departure"); save();
@@ -427,9 +426,9 @@
     }).join("\n");
     var body =
       "Hi " + stu.firstName + ",\n\n" +
-      "You return tomorrow from " + s.tripName + ". Here is the work owed, per class:\n\n" + lines + "\n\n" +
+      "You return tomorrow from " + s.tripName + ". Here is the work you were requested to complete:\n\n" + lines + "\n\n" +
       "When you are back, go to each teacher, show them the completed work, and ask them to finalize your record.";
-    pushEmail("day_before_return", stu.email, "Work owed on your return — " + s.tripName, body,
+    pushEmail("day_before_return", stu.email, "Reminder: work set to be completed — " + s.tripName, body,
       { text: "See the latest on your trip page →", url: studentLink(sid) });
     markFired("day_before_return"); save();
     toast("Student reminder sent to the Outbox.");
@@ -447,32 +446,11 @@
       "Dear " + t.name + ",\n\n" +
       "These students have returned from " + s.tripName + ". The work you set was:\n\n" + lines + "\n\n" +
       "Each student should show you the completed work; please sign off on their record. " +
-      "We ask that you complete this within three days (a request, not an enforced deadline).";
+      "If you need to record a PowerSchool log entry, we ask that you complete this within three days of the student returning to class.";
     pushEmail("morning_return", t.email, "Sign-off needed — " + s.tripName, body,
       { text: "Finalize each student's record →", url: teacherLink(tid) });
     markFired("morning_return"); save();
     toast("Return reminder sent to the Outbox.");
-  }
-
-  // Fixed-width text table of the confirmed (travelling) students for the
-  // HS Admin notification. Columns: No., ID, Last, First, Grade.
-  function confirmedTableText() {
-    var parse = state.director.parse;
-    var rows = (parse && parse.rows ? parse.rows : []).filter(function (r) { return r.matched; });
-    var header = ["No.", "ID", "Last", "First", "Gr"];
-    var data = rows.map(function (r) { return [r.no, r.id, r.last, r.first, r.grade]; });
-    var all = [header].concat(data);
-    var widths = header.map(function (_, c) {
-      return Math.max.apply(null, all.map(function (row) { return String(row[c] || "").length; }));
-    });
-    function fmtRow(row) {
-      return row.map(function (cell, c) {
-        var v = String(cell || "");
-        return v + new Array(widths[c] - v.length + 1).join(" ");
-      }).join("  ");
-    }
-    var sep = widths.map(function (w) { return new Array(w + 1).join("-"); }).join("  ");
-    return [fmtRow(header), sep].concat(data.map(fmtRow)).join("\n");
   }
 
   function fireFyi() {
@@ -485,9 +463,9 @@
       "  • Dates: " + fmtDateTime(s.departure) + " → " + fmtDateTime(s.return) + "\n" +
       (s.academicNotes ? "  • Academic notes: " + s.academicNotes + "\n" : "") +
       "  • Trip contact: " + contact + "\n\n" +
-      "Confirmed students travelling:\n\n" + confirmedTableText();
+      "To see which students are on this trip,";
     pushEmail("approved", HS_ADMIN, "Trip finalized — " + s.tripName, body,
-      { text: "View the full trip record →", url: adminLink() });
+      { text: "view the full trip record", url: adminLink() });
     save();
     toast("Notification sent to HS Admin (see Outbox).");
   }
@@ -943,6 +921,25 @@
     return '<span class="pill pill--neutral"><span class="dot"></span>Not yet</span>';
   }
 
+  // Student-facing contact pill (how the student reached the teacher).
+  var CONTACT_PILL = {
+    never_saw_me:   { cls: "pill--red",    label: "Didn't see the teacher" },
+    saw_me:         { cls: "pill--green",  label: "Saw the teacher" },
+    messaged_me:    { cls: "pill--amber",  label: "Emailed/messaged the teacher" },
+    contacted_trip: { cls: "pill--orange", label: "Contacted the teacher while on the trip" }
+  };
+  function contactPillHtml(status) {
+    var c = CONTACT_PILL[status] || CONTACT_PILL.never_saw_me;
+    return '<span class="pill ' + c.cls + '"><span class="dot"></span>' + esc(c.label) + "</span>";
+  }
+  // Most-positive contact across a teacher's classes for this student.
+  function bestContact(entries) {
+    var rank = { never_saw_me: 0, contacted_trip: 1, messaged_me: 2, saw_me: 3 };
+    var best = "never_saw_me";
+    entries.forEach(function (e) { if ((rank[e.contactStatus] || 0) > (rank[best] || 0)) best = e.contactStatus; });
+    return best;
+  }
+
   function renderStudent() {
     var sid = state.viewingStudentId;
     var s = snap();
@@ -968,22 +965,29 @@
     mine.forEach(function (e) { (byTeacher[e.teacherId] = byTeacher[e.teacherId] || []).push(e); });
     var blocks = Object.keys(byTeacher).sort().map(function (tid) {
       var es = byTeacher[tid];
-      var classes = es.map(function (e) {
+      var classes = es.map(function (e, i) {
         var workSet = (e.work && e.work.set) ? e.work.set : "To be confirmed with your teacher.";
         var assess = (e.missedAssessment && e.missedAssessment.flag)
-          ? '<div class="note-box" style="margin-top:8px">A <b>' + esc(e.missedAssessment.type || "task") + "</b> was missed. Please <b>" +
+          ? '<div class="note-box" style="margin-top:10px">A <b>' + esc(e.missedAssessment.type || "task") + "</b> was missed. Please <b>" +
             esc(assessmentVerb(e.missedAssessment.type)) + "</b> it as soon as practical after you return, in negotiation with your teacher.</div>"
           : "";
-        return '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">' +
-          '<div class="row" style="justify-content:space-between"><b>' + esc(e.className) + "</b>" + pillHtml(statusOf(e)) + "</div>" +
-          '<dl class="kv" style="margin-top:8px">' +
-          "<div><dt>Work to be completed</dt><dd>" + esc(workSet) + "</dd></div>" +
-          "<div><dt>Work completed</dt><dd>" + factIcon(e.completedWork) + "</dd></div>" +
-          (e.missedAssessment.flag ? "<div><dt>Make-up negotiated</dt><dd>" + factIcon(e.assessmentNegotiated) + "</dd></div>" : "") +
-          "</dl>" + assess + "</div>";
+        // 2nd+ subject for this teacher gets a divider above it.
+        var sep = i > 0 ? "subject--sep" : "";
+        // The "after return" facts sit together in a pale-yellow box.
+        var postBox =
+          '<div class="post-return">' +
+          '<div class="field-mini"><dt>Work completed</dt><dd>' + factIcon(e.completedWork) + "</dd></div>" +
+          (e.missedAssessment.flag ? '<div class="field-mini"><dt>Make-up negotiated</dt><dd>' + factIcon(e.assessmentNegotiated) + "</dd></div>" : "") +
+          "</div>";
+        return '<div class="subject ' + sep + '">' +
+          '<div class="subject__name">' + esc(e.className) + "</div>" +
+          '<div class="subject__facts">' +
+          '<div class="field-mini field-mini--grow"><dt>Work to be completed</dt><dd>' + esc(workSet) + "</dd></div>" +
+          postBox +
+          "</div>" + assess + "</div>";
       }).join("");
       return '<div class="card"><div class="card__head"><div class="card__title" style="justify-content:space-between"><span class="grow">' + esc(teacherName(tid)) + "</span>" +
-        pillHtml(aggregateStatus(es)) + "</div></div><div class=\"card__body\">" + classes + "</div></div>";
+        contactPillHtml(bestContact(es)) + "</div></div><div class=\"card__body\">" + classes + "</div></div>";
     }).join("");
 
     return head + ackBar + instructions + blocks;
