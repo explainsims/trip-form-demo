@@ -50,7 +50,7 @@
     view: "director",
     viewingTeacherId: (FX.teachers && FX.teachers[0] && FX.teachers[0].id) || "",
     viewingStudentId: (FX.students && FX.students[0] && FX.students[0].id) || "",
-    director: { signedIn: false, season: "", tripId: "", parse: null, designatedContactId: "" },
+    director: { signedIn: false, tab: "approve", loadedTripId: "", source: "", parse: null, designatedContactId: "" },
     snapshot: null
   };
 
@@ -69,7 +69,7 @@
   function resetAll() {
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
     state.view = "director";
-    state.director = { signedIn: false, season: "", tripId: "", parse: null, designatedContactId: "" };
+    state.director = { signedIn: false, tab: "approve", loadedTripId: "", source: "", parse: null, designatedContactId: "" };
     state.snapshot = null;
   }
 
@@ -284,9 +284,9 @@
 
   function approve() {
     var d = state.director;
-    var trip = (FX.trips || []).filter(function (t) { return t.id === d.tripId; })[0];
-    if (!trip) { toast("Pick a trip first.", true); return false; }
-    if (!d.parse || !d.parse.matchedStudentIds.length) { toast("Upload or load a trip sheet first.", true); return false; }
+    if (!d.parse || !d.parse.matchedStudentIds.length) { toast("Load a trip sheet first.", true); return false; }
+    var trip = (FX.trips || []).filter(function (t) { return t.id === d.loadedTripId; })[0];
+    if (!trip) { toast("Load a trip sheet first.", true); return false; }
     var weekdays = coveredWeekdays(trip.departure, trip.return);
     var meetings = computeMeetings(d.parse.matchedStudentIds, FX.timetable, weekdays);
     state.snapshot = {
@@ -507,7 +507,7 @@
         ? '<span class="cell-flag">⚠ ' + esc(r.flags.join("; ")) + "</span>"
         : '<span class="pill pill--green"><span class="dot"></span>OK</span>';
       return '<tr class="' + (r.flags.length ? "flagged" : "") + '">' +
-        "<td>" + esc(r.no) + "</td><td>" + esc(r.id || "—") + "</td>" +
+        '<td class="num">' + esc(r.no) + "</td><td>" + esc(r.id || "—") + "</td>" +
         "<td>" + esc(r.last) + "</td><td>" + esc(r.first) + "</td>" +
         "<td>" + esc(r.grade) + "</td><td>" + flagCell + "</td></tr>";
     }).join("");
@@ -518,8 +518,22 @@
       " rows matched the roster. " + parse.flaggedCount + " row(s) flagged for review — nothing is guessed.</p>";
   }
 
+  // Trip details prepopulated from the loaded sheet, shown above the roster.
+  function tripSummaryHtml(trip) {
+    if (!trip) return "";
+    return '<div class="trip-summary">' +
+      '<div class="trip-summary__name">' + esc(trip.name) + "</div>" +
+      '<div class="trip-summary__meta">' + esc(trip.program || "Athletics") + " · " + esc(trip.season) + "</div>" +
+      '<dl class="kv">' +
+      "<div><dt>Departs</dt><dd>" + fmtDateTime(trip.departure) + "</dd></div>" +
+      "<div><dt>Returns</dt><dd>" + fmtDateTime(trip.return) + "</dd></div>" +
+      "<div><dt>Academic notes</dt><dd>" + esc(trip.academicNotes || "—") + "</dd></div>" +
+      "<div><dt>Roster on sheet</dt><dd>" + trip.rosterStudentIds.length + " students</dd></div>" +
+      "</dl></div>";
+  }
+
   function affectedHtml(parse, trip) {
-    if (!parse || !trip) return '<p class="muted">Pick a trip and load a sheet to see who is impacted.</p>';
+    if (!parse || !trip) return '<p class="muted">Load a trip sheet to see who is impacted.</p>';
     var weekdays = coveredWeekdays(trip.departure, trip.return);
     var meetings = computeMeetings(parse.matchedStudentIds, FX.timetable, weekdays);
     var groups = affectedByTeacher(meetings, FX);
@@ -532,7 +546,7 @@
       return '<div class="affected-group"><h4>' + esc(g.teacher.name) +
         ' <span class="chip">' + g.classes.length + " class(es)</span></h4><ul>" + items + "</ul></div>";
     }).join("");
-    return '<p class="help">Trip days: ' + esc(weekdays.join(", ")) + ". Early visibility of every teacher × class × period the trip disrupts.</p>" + body;
+    return '<p class="help" style="margin-bottom:10px">Trip days: ' + esc(weekdays.join(", ")) + ". Every teacher × class × period the trip disrupts — visible before anything is sent.</p>" + body;
   }
 
   function dashboardHtml() {
@@ -554,100 +568,123 @@
         return '<div class="card dash-card"><div class="grow"><strong>' + esc(t.name) + "</strong><br>" +
           '<span class="muted">' + fmtDate(t.departure) + " – " + fmtDate(t.return) + " · " + t.rosterStudentIds.length + " students</span></div>" +
           "<div>" + meta + "</div><div>" + pill + "</div></div>";
-      }).join("") : '<p class="muted">None.</p>';
+      }).join("") : '<p class="muted" style="padding:4px 2px">None.</p>';
       return '<div class="dash-group"><h3>' + name + "</h3>" + cards + "</div>";
     }).join("");
   }
 
+  // A small inline Google Drive glyph (decorative; the button is non-functional).
+  var DRIVE_SVG = '<svg viewBox="0 0 87.3 78" aria-hidden="true">' +
+    '<path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>' +
+    '<path d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3L1.2 48.5C.4 49.9 0 51.45 0 53h27.5z" fill="#00ac47"/>' +
+    '<path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z" fill="#ea4335"/>' +
+    '<path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>' +
+    '<path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>' +
+    '<path d="M73.4 26.5L60.65 4.5c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>';
+
   function renderDirector() {
     if (!state.director.signedIn) {
       return '<div class="view-head"><h1>Director</h1><p>Athletics program · trip approvals</p></div>' +
-        '<div class="card"><div class="card__title"><span class="step">1</span> Sign in</div>' +
-        '<p class="card__sub">Demo only — this stands in for Google sign-in. No real account is used.</p>' +
+        '<div class="card"><div class="card__head"><div class="card__title">Sign in</div>' +
+        '<p class="card__sub">Stands in for Google sign-in — no real account is used.</p></div>' +
         '<div class="card__body"><button type="button" class="btn btn--primary" data-action="dir-signin">Sign in as Athletics Director</button></div></div>';
     }
 
     var d = state.director;
     var tab = d.tab || "approve";
-    var head = '<div class="view-head"><h1>Director</h1><p>Signed in (demo) · scoped to the <b>Athletics</b> program</p></div>' +
-      '<div class="seg" role="group" aria-label="Director tabs" style="margin-bottom:14px">' +
-      '<button type="button" class="seg__btn" data-action="dir-tab" data-tab="approve" aria-pressed="' + (tab === "approve") + '">Approve a trip</button>' +
-      '<button type="button" class="seg__btn" data-action="dir-tab" data-tab="dashboard" aria-pressed="' + (tab === "dashboard") + '">Dashboard</button></div>';
+    var head = '<div class="view-head"><h1>Director</h1><p>Signed in · scoped to the <b>Athletics</b> program</p></div>' +
+      '<div class="tabs" role="group" aria-label="Director tabs">' +
+      '<button type="button" class="tabs__btn" data-action="dir-tab" data-tab="approve" aria-pressed="' + (tab === "approve") + '">Approve a trip</button>' +
+      '<button type="button" class="tabs__btn" data-action="dir-tab" data-tab="dashboard" aria-pressed="' + (tab === "dashboard") + '">Dashboard</button></div>';
 
     if (tab === "dashboard") return head + dashboardHtml();
     return head + approveTabHtml();
   }
   function afterDirector() {}
 
-  function approveTabHtml() {
+  // ----- Director side rail (Drive source picker, contact, approve) -----
+  function sourcePickerCard() {
     var d = state.director;
-    var s = snap();
-    var trips = FX.trips || [];
-    var selTrip = trips.filter(function (t) { return t.id === d.tripId; })[0] || null;
+    var loaded = !!d.parse;
+    return '<div class="card"><div class="card__head"><div class="card__title">Trip sheet source</div>' +
+      '<p class="card__sub">Select the trip sheet stored in the program&#39;s Drive folder.</p></div>' +
+      '<div class="card__body"><div class="source">' +
+      '<button type="button" class="source__btn" data-action="drive-open" disabled aria-disabled="true">' +
+      '<span class="source__icon">' + DRIVE_SVG + "</span>" +
+      '<span class="source__main"><span class="source__title">Browse Google Drive</span>' +
+      '<span class="source__desc">Athletics › Trip sheets</span></span>' +
+      '<span class="source__hint">demo</span></button>' +
+      '<button type="button" class="source__btn" data-action="load-sample">' +
+      '<span class="source__icon">📄</span>' +
+      '<span class="source__main"><span class="source__title">' + (loaded ? "Reload sample trip sheet" : "Load sample trip sheet") + "</span>" +
+      '<span class="source__desc">T24 – MRISA Sr Soccer 2026</span></span>' +
+      "</button></div>" +
+      '<p class="help">Drive browsing is stubbed for this demo — use the sample sheet, which loads exactly as a real selection would.</p>' +
+      "</div></div>";
+  }
 
-    var frozen = "";
-    if (s) {
-      frozen =
-        '<div class="card" style="border-color:var(--green)"><div class="card__title">' +
-        '<span class="pill pill--green"><span class="dot"></span>Approved &amp; frozen</span> ' + esc(s.tripName) + "</div>" +
-        '<p class="card__sub">Snapshot frozen ' + fmtDateTime(s.frozenAt) + ". This is the source of truth from here on — later edits to the source sheet will not leak in.</p>" +
-        '<div class="card__body"><dl class="kv">' +
-        "<div><dt>Dates</dt><dd>" + fmtDate(s.departure) + " – " + fmtDate(s.return) + "</dd></div>" +
-        "<div><dt>Students affected</dt><dd>" + studentIdsWithEntries().length + "</dd></div>" +
-        "<div><dt>Teachers affected</dt><dd>" + teacherIdsWithEntries().length + "</dd></div>" +
-        "<div><dt>Designated contact</dt><dd>" + esc(s.designatedContactTeacherId ? teacherName(s.designatedContactTeacherId) : "Director (you)") + "</dd></div>" +
-        "</dl><div class=\"row\" style=\"margin-top:14px\">" +
-        '<button type="button" class="btn" data-action="fyi">Send FYI to HS Admin</button>' +
-        '<button type="button" class="btn" data-action="goto" data-view="teacher">Open Teacher view</button>' +
-        "</div></div></div>" +
-        '<p class="help" style="margin:14px 2px">Need to redo it? Pick a trip and approve again below to replace the frozen snapshot.</p>';
-    }
-
-    var seasonOpts = '<option value="">All seasons</option>' + (FX.seasons || []).map(function (se) {
-      return '<option value="' + esc(se) + '"' + (se === d.season ? " selected" : "") + ">" + esc(se) + "</option>";
-    }).join("");
-    var tripList = trips.filter(function (t) { return !d.season || t.season === d.season; });
-    var tripOpts = '<option value="">Select a trip…</option>' + tripList.map(function (t) {
-      return '<option value="' + esc(t.id) + '"' + (t.id === d.tripId ? " selected" : "") + ">" + esc(t.name) + "</option>";
-    }).join("");
-
-    var pick =
-      '<div class="card"><div class="card__title"><span class="step">2</span> Pick a season &amp; trip</div>' +
-      '<div class="card__body row"><div class="grow"><label class="field-label" for="dir-season">Season</label>' +
-      '<select class="select" id="dir-season" data-action="dir-season">' + seasonOpts + "</select></div>" +
-      '<div class="grow"><label class="field-label" for="dir-trip">Trip</label>' +
-      '<select class="select" id="dir-trip" data-action="dir-trip">' + tripOpts + "</select></div></div>" +
-      (selTrip ? '<div class="card__body"><dl class="kv">' +
-        "<div><dt>Trip</dt><dd>" + esc(selTrip.name) + "</dd></div>" +
-        "<div><dt>Dates</dt><dd>" + fmtDateTime(selTrip.departure) + " → " + fmtDateTime(selTrip.return) + "</dd></div>" +
-        "<div><dt>Academic notes</dt><dd>" + esc(selTrip.academicNotes || "—") + "</dd></div>" +
-        "<div><dt>Official roster</dt><dd>" + selTrip.rosterStudentIds.length + " students</dd></div></dl></div>" : "") +
-      "</div>";
-
-    var upload =
-      '<div class="card"><div class="card__title"><span class="step">3</span> Upload the trip sheet</div>' +
-      '<p class="card__sub">Parsed in your browser — no upload to any server. Low-confidence rows are flagged, not guessed.</p>' +
-      '<div class="card__body"><div class="dropzone"><div>Drop a CSV here, or choose a file:</div>' +
-      '<input type="file" id="csv-input" accept=".csv,text/csv" />' +
-      '<div style="margin-top:8px"><button type="button" class="btn btn--sm" data-action="load-sample">Load the sample sheet</button></div></div>' +
-      (d.parse ? '<div class="card__body">' + rosterTableHtml(d.parse) + "</div>" : "") + "</div>";
-
-    var affected =
-      '<div class="card"><div class="card__title"><span class="step">4</span> Affected teachers (before anything is sent)</div>' +
-      '<div class="card__body">' + affectedHtml(d.parse, selTrip) + "</div></div>";
-
+  function contactApproveCard() {
+    var d = state.director;
+    var ready = !!(d.parse && d.parse.matchedStudentIds.length);
     var contactOpts = '<option value="">Director (you)</option>' + (FX.teachers || []).map(function (t) {
       return '<option value="' + esc(t.id) + '"' + (t.id === d.designatedContactId ? " selected" : "") + ">" + esc(t.name) + " (coach)</option>";
     }).join("");
-    var contactAndApprove =
-      '<div class="card"><div class="card__title"><span class="step">5</span> Designated contact &amp; approval</div>' +
-      '<div class="card__body"><div class="row"><div class="grow"><label class="field-label" for="dir-contact">Designated contact for this trip</label>' +
+    return '<div class="card"><div class="card__head"><div class="card__title">Designated contact &amp; approval</div></div>' +
+      '<div class="card__body">' +
+      '<label class="field-label" for="dir-contact">Designated contact for this trip</label>' +
       '<select class="select" id="dir-contact" data-action="dir-contact">' + contactOpts + "</select>" +
-      '<p class="help">The Director or a coach travelling with the team.</p></div></div>' +
-      '<div class="note-box" style="margin-top:12px">Approving means <b>“this extraction is correct.”</b> It is not permission for the trip and the app never decides anything — it freezes a snapshot and starts notifying people.</div>' +
-      '<div class="row" style="margin-top:14px"><button type="button" class="btn btn--primary" data-action="approve">Approve &amp; freeze snapshot</button></div></div></div>';
+      '<p class="help">The Director or a coach travelling with the team.</p>' +
+      '<div class="note-box" style="margin-top:14px">Approving means <b>“this extraction is correct.”</b> It is not permission for the trip — the app makes no decisions; it freezes a snapshot and begins notifying people.</div>' +
+      '<button type="button" class="btn btn--primary btn--block" data-action="approve" style="margin-top:14px"' + (ready ? "" : " disabled") + ">Approve &amp; freeze snapshot</button>" +
+      (ready ? "" : '<p class="help" style="text-align:center">Load a trip sheet to enable approval.</p>') +
+      "</div></div>";
+  }
 
-    return frozen + pick + upload + affected + contactAndApprove;
+  function frozenCard() {
+    var s = snap(); if (!s) return "";
+    return '<div class="card"><div class="card__head"><div class="card__title">' +
+      '<span class="pill pill--green"><span class="dot"></span>Approved &amp; frozen</span></div>' +
+      '<p class="card__sub">Frozen ' + fmtDateTime(s.frozenAt) + " — the source of truth from here on.</p></div>" +
+      '<div class="card__body"><dl class="kv">' +
+      "<div><dt>Students affected</dt><dd>" + studentIdsWithEntries().length + "</dd></div>" +
+      "<div><dt>Teachers affected</dt><dd>" + teacherIdsWithEntries().length + "</dd></div>" +
+      "<div><dt>Designated contact</dt><dd>" + esc(s.designatedContactTeacherId ? teacherName(s.designatedContactTeacherId) : "Director (you)") + "</dd></div>" +
+      '</dl><button type="button" class="btn btn--block" data-action="fyi" style="margin-top:14px">Send FYI to HS Admin</button>' +
+      '<button type="button" class="btn btn--block" data-action="goto" data-view="teacher" style="margin-top:8px">Open Teacher view</button>' +
+      "</div></div>";
+  }
+
+  // ----- Director main column: the trip sheet is the primary view -----
+  function sheetCard() {
+    var d = state.director;
+    var trip = (FX.trips || []).filter(function (t) { return t.id === d.loadedTripId; })[0] || null;
+    if (!d.parse) {
+      return '<div class="card"><div class="card__head"><div class="card__title">Trip sheet</div>' +
+        '<p class="card__sub">No sheet loaded yet.</p></div>' +
+        '<div class="card__body"><div class="empty"><h3>Load a trip sheet to begin</h3>' +
+        "<p>Use the <b>Trip sheet source</b> panel to load the sheet from Drive. " +
+        "It is parsed in your browser; low-confidence rows are flagged, never guessed.</p></div></div></div>";
+    }
+    return '<div class="card"><div class="card__head"><div class="card__title">' +
+      '<span class="eyebrow">Trip sheet</span></div>' +
+      '<p class="card__sub">Loaded from Drive · parsed in your browser. Trip details and roster were extracted from the sheet.</p></div>' +
+      '<div class="card__body">' + tripSummaryHtml(trip) + rosterTableHtml(d.parse) + "</div></div>";
+  }
+
+  function approveTabHtml() {
+    var d = state.director;
+    var trip = (FX.trips || []).filter(function (t) { return t.id === d.loadedTripId; })[0] || null;
+
+    var main =
+      sheetCard() +
+      '<div class="card"><div class="card__head"><div class="card__title">Affected teachers</div>' +
+      '<p class="card__sub">Computed from the timetable — shown before anything is sent.</p></div>' +
+      '<div class="card__body">' + affectedHtml(d.parse, trip) + "</div></div>";
+
+    var side = (snap() ? frozenCard() : "") + sourcePickerCard() + contactApproveCard();
+
+    return '<div class="dir-grid"><div class="stack">' + main + "</div>" +
+      '<aside class="dir-side">' + side + "</aside></div>";
   }
 
   /* =====================================================================
@@ -693,8 +730,8 @@
         pillHtml(studentAggForTeacher(sid, tid)) + "</button>";
     }).join("");
 
-    var left = '<div class="card"><div class="card__title">Affected students <span class="chip">' + sids.length + "</span></div>" +
-      '<p class="card__sub">Default status is <b>“Not actioned”</b> — silence reads as non-compliance.</p>' +
+    var left = '<div class="card"><div class="card__head"><div class="card__title">Affected students <span class="chip">' + sids.length + "</span></div>" +
+      '<p class="card__sub">Default status is <b>“Not actioned”</b> — silence reads as non-compliance.</p></div>' +
       '<div class="card__body list">' + list + "</div></div>";
 
     var right = teacherEntryPanel(sel, tid) + closeoutTemplatesHtml(sel);
@@ -752,8 +789,8 @@
   function teacherEntryPanel(sid, tid) {
     var entries = entriesForTeacher(tid).filter(function (e) { return e.studentId === sid; });
     var blocks = entries.map(classBlock).join('<div style="height:12px"></div>');
-    return '<div class="card"><div class="card__title">' + esc(studentName(sid)) + "</div>" +
-      '<p class="card__sub">Two buckets: how they contacted you, and the work. Enter once, then “Copy across my students” for the rest of the group.</p>' +
+    return '<div class="card"><div class="card__head"><div class="card__title">' + esc(studentName(sid)) + "</div>" +
+      '<p class="card__sub">Two buckets: how they contacted you, and the work. Enter once, then “Copy across my students” for the rest of the group.</p></div>' +
       '<div class="card__body">' + blocks + "</div></div>";
   }
 
@@ -783,8 +820,8 @@
         '<button type="button" class="btn btn--sm" data-action="copy-template" data-idx="' + i + '">Copy</button></div>' +
         "<pre>" + esc(t.text) + "</pre></div>";
     }).join("");
-    return '<div class="card"><div class="card__title">Close-out templates</div>' +
-      '<p class="card__sub">Copy-and-paste log entries for the failure cases. The app provides the words; you do the logging.</p>' +
+    return '<div class="card"><div class="card__head"><div class="card__title">Close-out templates</div>' +
+      '<p class="card__sub">Copy-and-paste log entries for the failure cases. The app provides the words; you do the logging.</p></div>' +
       '<div class="card__body">' + tpls +
       '<div class="note-box" style="margin-top:14px"><b>How to log this in PowerSchool</b><br>' +
       "1. Open the student in PowerSchool → Log Entries. 2. New entry, category “Trip Absence”. 3. Paste the text above. 4. Save. " +
@@ -818,7 +855,7 @@
       ? '<div class="note-box">✓ Acknowledged ' + fmtDateTime(acked) + " — thank you. This is your proof of receipt.</div>"
       : '<div class="note-box">Please acknowledge that you have seen this page (a one-tap confirmation will appear).</div>';
 
-    var instructions = '<div class="card"><div class="card__title">What you need to do</div><div class="card__body">' +
+    var instructions = '<div class="card"><div class="card__head"><div class="card__title">What you need to do</div></div><div class="card__body">' +
       "<p>Go to <b>each teacher below in person</b> and ask them to complete your record. " +
       "You do not enter anything here yourself — this page is read-only and just shows where things stand.</p></div></div>";
 
@@ -842,8 +879,8 @@
           (e.missedAssessment.flag ? "<div><dt>Make-up negotiated</dt><dd>" + factIcon(e.assessmentNegotiated) + "</dd></div>" : "") +
           "</dl>" + assess + "</div>";
       }).join("");
-      return '<div class="card"><div class="card__title"><span class="grow">' + esc(teacherName(tid)) + "</span>" +
-        pillHtml(aggregateStatus(es)) + "</div><div class=\"card__body\">" + classes + "</div></div>";
+      return '<div class="card"><div class="card__head"><div class="card__title" style="justify-content:space-between"><span class="grow">' + esc(teacherName(tid)) + "</span>" +
+        pillHtml(aggregateStatus(es)) + "</div></div><div class=\"card__body\">" + classes + "</div></div>";
     }).join("");
 
     return head + ackBar + instructions + blocks;
@@ -903,11 +940,16 @@
     else if (stage === "morning_return") fireMorningReturn();
     render();
   }
+  // The sample sheet represents the Feb trip (the one with a full timetable).
+  var SAMPLE_TRIP_ID = "T24";
+
   function loadSample() {
     var parsed = parseCsv(FX.sampleCsv);
     state.director.parse = analyzeSheet(parsed, FX);
+    state.director.loadedTripId = SAMPLE_TRIP_ID;
+    state.director.source = "drive-sample";
     save(); render();
-    toast("Sample sheet loaded and parsed.");
+    toast("Trip sheet loaded from Drive.");
   }
 
   function onClick(e) {
@@ -929,6 +971,7 @@
       if (a === "goto") { setView(el.getAttribute("data-view")); return; }
       if (a === "dir-signin") { state.director.signedIn = true; save(); render(); return; }
       if (a === "dir-tab") { state.director.tab = el.getAttribute("data-tab"); save(); render(); return; }
+      if (a === "drive-open") { toast("Drive browsing is stubbed for this demo — load the sample sheet."); return; }
       if (a === "load-sample") { loadSample(); return; }
       if (a === "approve") { if (approve()) { state.director.tab = "approve"; render(); toast("Approved & frozen."); } return; }
       if (a === "fyi") { fireFyi(); render(); return; }
@@ -974,22 +1017,10 @@
       else state.viewingStudentId = t.value;
       save(); render(); return;
     }
-    if (t.id === "csv-input" && t.files && t.files[0]) {
-      var reader = new FileReader();
-      reader.onload = function () {
-        state.director.parse = analyzeSheet(parseCsv(String(reader.result)), FX);
-        save(); render(); toast("Sheet parsed (" + state.director.parse.matchedStudentIds.length + " matched).");
-      };
-      reader.onerror = function () { toast("Could not read that file.", true); };
-      reader.readAsText(t.files[0]);
-      return;
-    }
     var a = t.getAttribute && t.getAttribute("data-action");
     if (!a) return;
     var key = t.getAttribute("data-key");
-    if (a === "dir-season") { state.director.season = t.value; save(); render(); }
-    else if (a === "dir-trip") { state.director.tripId = t.value; save(); render(); }
-    else if (a === "dir-contact") { state.director.designatedContactId = t.value; save(); render(); }
+    if (a === "dir-contact") { state.director.designatedContactId = t.value; save(); render(); }
     else if (a === "set-contact") { withEntry(key, function (en) { en.contactStatus = t.value; }); render(); }
     else if (a === "set-atype") { withEntry(key, function (en) { en.missedAssessment.type = t.value; }); render(); }
     else if (a === "toggle-missed") {
