@@ -35,11 +35,15 @@
       var an = T.analyzeSheet(parsed, FX);
 
       test("CSV parses the sample sheet (8 rows)", function () { eq(an.rows.length, 8); });
-      test("matches 6 students; skips blank + unknown IDs", function () {
-        eq(an.matchedStudentIds.length, 6);
+      test("matches 5 students; skips not-travelling, blank + unknown IDs", function () {
+        eq(an.matchedStudentIds.length, 5);
+        assert(an.matchedStudentIds.indexOf("S0005") === -1, "XX (not travelling) excluded");
         assert(an.matchedStudentIds.indexOf("S0006") === -1 && an.matchedStudentIds.indexOf("S9999") === -1);
       });
-      test("flags low-confidence rows instead of guessing (XX, blank, unknown)", function () { eq(an.flaggedCount, 3); });
+      test("XX in No. marks a student not travelling", function () {
+        assert(an.rows[4].notTravelling && an.rows[4].flags.join().indexOf("Not travelling") !== -1);
+      });
+      test("flags low-confidence rows instead of guessing (not travelling, blank, unknown)", function () { eq(an.flaggedCount, 3); });
       test("trip days resolve to Thu, Fri", function () { eq(T.coveredWeekdays(FX.trips[0].departure, FX.trips[0].return).join(","), "Thu,Fri"); });
 
       var wd = T.coveredWeekdays(FX.trips[0].departure, FX.trips[0].return);
