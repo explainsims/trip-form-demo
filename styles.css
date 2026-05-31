@@ -167,6 +167,7 @@ textarea { resize: vertical; min-height: 60px; line-height: 1.45; }
 .kv div { display: flex; flex-direction: column; gap: 2px; }
 .kv dt { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); font-weight: 600; }
 .kv dd { margin: 0; font-weight: 600; font-size: .92rem; }
+.kv--center div { align-items: center; text-align: center; }
 
 /* Two-column Director layout: sheet (main) + side rail */
 .dir-grid { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
