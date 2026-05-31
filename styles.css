@@ -301,12 +301,12 @@ legend { font-weight: 700; font-size: .85rem; padding: 0 6px; color: var(--ink);
 .outbox-group__title { font-size: .82rem; font-weight: 700; text-transform: uppercase;
   letter-spacing: .05em; color: var(--ink-soft); margin-bottom: 12px; }
 /* Per-stage background shades (light) */
-.outbox-group--approved          { background: #eef3fb; border-color: #d6e2f3; }   /* notification */
+.outbox-group--notified          { background: #eef3fb; border-color: #d6e2f3; }   /* HS Admin notified */
 .outbox-group--week_out          { background: #eaf6ef; border-color: #cfe9da; }   /* week-out */
 .outbox-group--departure         { background: #fbf1e6; border-color: #f0dcc2; }   /* morning of departure */
 .outbox-group--day_before_return { background: #f4eefb; border-color: #e2d4f1; }   /* day before return */
 .outbox-group--morning_return    { background: #fdeef0; border-color: #f4d2d8; }   /* morning of return */
-.outbox-group--approved .outbox-group__title          { color: #2c4f86; }
+.outbox-group--notified .outbox-group__title          { color: #2c4f86; }
 .outbox-group--week_out .outbox-group__title          { color: #2c6c49; }
 .outbox-group--departure .outbox-group__title         { color: #8a5a1e; }
 .outbox-group--day_before_return .outbox-group__title { color: #6a4699; }
