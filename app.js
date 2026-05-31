@@ -21,17 +21,19 @@
   var HS_ADMIN = "HS Admin Office <hs-admin@demo.example>";
   var STORAGE_KEY = "tas:v1";
 
-  var STAGE_ORDER = ["approved", "week_out", "departure", "day_before_return", "morning_return"];
+  var STAGE_ORDER = ["finalized", "notified", "week_out", "departure", "day_before_return", "morning_return"];
   var STAGE_LABEL = {
     none: "Not started",
-    approved: "Finalized",
+    finalized: "Finalized",
+    notified: "HS Admin notified",
     week_out: "Week-out notice sent",
     departure: "Morning of departure",
     day_before_return: "Day before return",
     morning_return: "Morning of return"
   };
   var STAGE_BTN = {
-    approved: "HS Admin Notified",
+    finalized: "Finalize",
+    notified: "HS Admin Notified",
     week_out: "Week-out notice",
     departure: "Morning of departure",
     day_before_return: "Day before return",
@@ -39,7 +41,7 @@
   };
   // Outbox section titles per stage.
   var STAGE_OUTBOX = {
-    approved: "HS Admin Notified",
+    notified: "HS Admin Notified",
     week_out: "Week-out notice",
     departure: "Morning of departure",
     day_before_return: "Day before return",
@@ -309,7 +311,7 @@
       departure: trip.departure, return: trip.return, academicNotes: trip.academicNotes || "",
       weekdays: weekdays,
       frozenAt: new Date().toISOString(),
-      stage: "approved",
+      stage: "finalized",
       designatedContactTeacherId: d.designatedContactId || "",
       entries: buildEntries(meetings),
       acks: {}, outbox: [], firedStages: []
@@ -404,7 +406,7 @@
       "Dear " + t.name + ",\n\n" +
       "These students leave today on " + s.tripName + " and will be absent for the next " + n + " school day(s):\n\n" +
       classLineForTeacher(tid) + "\n\n" +
-      "A reminder to complete the student travel form for all students.";
+      "This is a reminder to complete the trip absence form for all your students.";
     pushEmail("departure", t.email, "Leaving today — " + s.tripName, body,
       { text: "Record work set before they leave →", url: teacherLink(tid) });
     markFired("departure"); save();
@@ -454,7 +456,8 @@
   }
 
   function fireFyi() {
-    var s = snap(); if (!s) { toast("Approve a trip first.", true); return; }
+    var s = snap(); if (!s) { toast("Finalize the trip first.", true); return; }
+    if (alreadyFired("notified")) { toast("HS Admin already notified."); return; }
     var contact = s.designatedContactTeacherId ? teacherName(s.designatedContactTeacherId) : "Director (you)";
     var body =
       "Dear HS Admin,\n\n" +
@@ -464,9 +467,9 @@
       (s.academicNotes ? "  • Academic notes: " + s.academicNotes + "\n" : "") +
       "  • Trip contact: " + contact + "\n\n" +
       "To see which students are on this trip,";
-    pushEmail("approved", HS_ADMIN, "Trip finalized — " + s.tripName, body,
+    pushEmail("notified", HS_ADMIN, "Trip finalized — " + s.tripName, body,
       { text: "view the full trip record", url: adminLink() });
-    save();
+    markFired("notified"); save();
     toast("Notification sent to HS Admin (see Outbox).");
   }
 
@@ -522,9 +525,11 @@
     var s = snap();
     var readyToApprove = !!(state.director.parse && state.director.parse.matchedStudentIds.length);
     var btns = STAGE_ORDER.map(function (stage) {
-      var fired = stage === "approved" ? !!s : (s && s.firedStages.indexOf(stage) !== -1);
+      // "finalized" greens as soon as a snapshot exists; everything else
+      // greens only once its own action has fired.
+      var fired = stage === "finalized" ? !!s : (s && s.firedStages.indexOf(stage) !== -1);
       var enabled;
-      if (stage === "approved") enabled = !s && readyToApprove;
+      if (stage === "finalized") enabled = !s && readyToApprove;
       else enabled = !!s && !fired;
       return '<button type="button" class="btn btn--stage" data-stage="' + stage + '"' +
         ' data-fired="' + (fired ? "true" : "false") + '"' + (enabled ? "" : " disabled") + '>' +
@@ -565,7 +570,7 @@
     return '<div class="table-wrap"><table><thead><tr>' +
       "<th>No.</th><th>ID</th><th>Last</th><th>First</th><th>Grade</th><th>Confirmed</th>" +
       "</tr></thead><tbody>" + rows + "</tbody></table></div>" +
-      '<div class="sheet-reload">Make any required changes on original Google Sheet and reload to confirm</div>';
+      '<div class="sheet-reload">Make any required changes on the original Google Sheet, then reload to confirm.</div>';
   }
 
   // Trip details prepopulated from the loaded sheet, shown above the roster.
@@ -614,7 +619,7 @@
         var meta = name === "Upcoming"
           ? '<span class="countdown">' + (o.dDep === 0 ? "today" : "in " + pluralDays(o.dDep)) + "</span>"
           : '<span class="muted">' + fmtDate(t.departure) + "</span>";
-        var pill = t.id === approvedId ? '<span class="pill pill--green"><span class="dot"></span>Approved &amp; frozen</span>' : '<span class="chip">' + esc(t.season) + "</span>";
+        var pill = t.id === approvedId ? '<span class="pill pill--green"><span class="dot"></span>Finalized</span>' : '<span class="chip">' + esc(t.season) + "</span>";
         return '<div class="card dash-card"><div class="grow"><strong>' + esc(t.name) + "</strong><br>" +
           '<span class="muted">' + fmtDate(t.departure) + " – " + fmtDate(t.return) + " · " + t.rosterStudentIds.length + " students</span></div>" +
           "<div>" + meta + "</div><div>" + pill + "</div></div>";
@@ -1064,8 +1069,9 @@
     fn(e); e.updatedAt = new Date().toISOString(); save(); return e;
   }
   function doStage(stage) {
-    if (stage === "approved") { if (approve()) { toast("Trip finalized."); } }
-    else if (!snap()) { toast("Approve a trip first.", true); }
+    if (stage === "finalized") { if (approve()) { toast("Trip finalized."); } }
+    else if (!snap()) { toast("Finalize the trip first.", true); }
+    else if (stage === "notified") fireFyi();
     else if (stage === "week_out") fireWeekOut();
     else if (stage === "departure") fireDeparture();
     else if (stage === "day_before_return") fireDayBeforeReturn();
