@@ -521,7 +521,7 @@
     return '<div class="table-wrap"><table><thead><tr>' +
       "<th>No.</th><th>ID</th><th>Last</th><th>First</th><th>Grade</th><th>Confirmed</th>" +
       "</tr></thead><tbody>" + rows + "</tbody></table></div>" +
-      '<p class="sheet-reload">Make any required changes on original Google Sheet and reload to confirm</p>';
+      '<div class="sheet-reload">Make any required changes on original Google Sheet and reload to confirm</div>';
   }
 
   // Trip details prepopulated from the loaded sheet, shown above the roster.
@@ -640,23 +640,20 @@
       '<label class="field-label" for="dir-contact">Designated contact for this trip</label>' +
       '<select class="select" id="dir-contact" data-action="dir-contact">' + contactOpts + "</select>" +
       '<p class="help">The Director or a coach travelling with the team.</p>' +
-      '<div class="note-box" style="margin-top:14px">Approving means <b>“this extraction is correct.”</b> It is not permission for the trip — the app makes no decisions; it freezes a snapshot and begins notifying people.</div>' +
-      '<button type="button" class="btn btn--primary btn--block" data-action="approve" style="margin-top:14px"' + (ready ? "" : " disabled") + ">Approve &amp; freeze snapshot</button>" +
+      '<button type="button" class="btn btn--primary btn--block" data-action="approve" style="margin-top:14px"' + (ready ? "" : " disabled") + ">Finalize</button>" +
       (ready ? "" : '<p class="help" style="text-align:center">Load a trip sheet to enable approval.</p>') +
       "</div></div>";
   }
 
   function frozenCard() {
     var s = snap(); if (!s) return "";
-    return '<div class="card"><div class="card__head"><div class="card__title">' +
-      '<span class="pill pill--green"><span class="dot"></span>Approved &amp; frozen</span></div>' +
-      '<p class="card__sub">Frozen ' + fmtDateTime(s.frozenAt) + " — the source of truth from here on.</p></div>" +
+    return '<div class="card"><div class="card__head"><div class="card__title">Notify HS Admin</div>' +
+      '<p class="card__sub">' + esc(s.tripName) + " from " + fmtDate(s.departure) + " to " + fmtDate(s.return) + " has been finalized.</p></div>" +
       '<div class="card__body"><dl class="kv">' +
       "<div><dt>Students affected</dt><dd>" + studentIdsWithEntries().length + "</dd></div>" +
       "<div><dt>Teachers affected</dt><dd>" + teacherIdsWithEntries().length + "</dd></div>" +
       "<div><dt>Designated contact</dt><dd>" + esc(s.designatedContactTeacherId ? teacherName(s.designatedContactTeacherId) : "Director (you)") + "</dd></div>" +
-      '</dl><button type="button" class="btn btn--block" data-action="fyi" style="margin-top:14px">Send FYI to HS Admin</button>' +
-      '<button type="button" class="btn btn--block" data-action="goto" data-view="teacher" style="margin-top:8px">Open Teacher view</button>' +
+      '</dl><button type="button" class="btn btn--primary btn--block" data-action="fyi" style="margin-top:14px">Notify HS Admin</button>' +
       "</div></div>";
   }
 
@@ -686,7 +683,18 @@
       '<div class="card"><div class="card__head"><div class="card__title">Impacted classes</div></div>' +
       '<div class="card__body">' + affectedHtml(d.parse, trip) + "</div></div>";
 
-    var side = (snap() ? frozenCard() : "") + sourcePickerCard() + contactApproveCard();
+    // Side rail order depends on state:
+    //  • no sheet loaded  -> only the source picker
+    //  • sheet loaded      -> contact card on top, source picker beneath
+    //  • approved          -> the notify card on top (then contact, then source)
+    var side;
+    if (snap()) {
+      side = frozenCard() + contactApproveCard() + sourcePickerCard();
+    } else if (d.parse) {
+      side = contactApproveCard() + sourcePickerCard();
+    } else {
+      side = sourcePickerCard();
+    }
 
     return '<div class="dir-grid"><div class="stack">' + main + "</div>" +
       '<aside class="dir-side">' + side + "</aside></div>";
@@ -959,6 +967,10 @@
     toast("Trip sheet loaded from Drive.");
   }
 
+  // Side-rail actions re-render the page; bring the viewport back to the top
+  // so the result is visible (the rail can sit well below the fold).
+  function scrollTop() { try { window.scrollTo(0, 0); } catch (e) {} }
+
   function onClick(e) {
     var seg = e.target.closest && e.target.closest("#view-seg .seg__btn");
     if (seg) { setView(seg.getAttribute("data-view")); return; }
@@ -975,13 +987,13 @@
     if (el) {
       var a = el.getAttribute("data-action");
       var key = el.getAttribute("data-key");
-      if (a === "goto") { setView(el.getAttribute("data-view")); return; }
+      if (a === "goto") { setView(el.getAttribute("data-view")); scrollTop(); return; }
       if (a === "dir-signin") { state.director.signedIn = true; save(); render(); return; }
       if (a === "dir-tab") { state.director.tab = el.getAttribute("data-tab"); save(); render(); return; }
       if (a === "drive-open") { toast("Drive browsing is stubbed for this demo — load the sample sheet."); return; }
-      if (a === "load-sample") { loadSample(); return; }
-      if (a === "approve") { if (approve()) { state.director.tab = "approve"; render(); toast("Approved & frozen."); } return; }
-      if (a === "fyi") { fireFyi(); render(); return; }
+      if (a === "load-sample") { loadSample(); scrollTop(); return; }
+      if (a === "approve") { if (approve()) { state.director.tab = "approve"; render(); toast("Trip finalized."); scrollTop(); } return; }
+      if (a === "fyi") { fireFyi(); render(); scrollTop(); return; }
       if (a === "teacher-select") { state.teacherSelectedStudent = el.getAttribute("data-sid"); save(); render(); return; }
       if (a === "set-q") {
         var q = el.getAttribute("data-q"), yn = el.getAttribute("data-yn") === "yes";

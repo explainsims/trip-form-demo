@@ -190,7 +190,9 @@ tr.not-travelling td { background: var(--red-bg); color: var(--ink-soft); }
 tr.not-travelling:hover td { background: #f7ddd9; }
 tr.not-travelling .cell-flag { color: var(--red); }
 .cell-flag { color: var(--amber); font-weight: 600; font-size: .8rem; white-space: normal; }
-.sheet-reload { font-weight: 700; font-size: .95rem; color: var(--ink); margin-top: 12px; }
+.sheet-reload { font-weight: 700; font-size: .95rem; color: var(--accent-strong); text-align: center;
+  margin-top: 14px; padding: 12px 14px; background: var(--accent-soft);
+  border: 1px solid var(--accent-line); border-radius: var(--radius-sm); }
 .num { color: var(--ink-faint); font-variant-numeric: tabular-nums; }
 
 /* =========================================================================
