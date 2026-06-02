@@ -388,8 +388,8 @@
       "Hi " + stu.firstName + ",\n\n" +
       "You are listed to travel on " + s.tripName + " (" + tripDatesLine() + "). You will miss these classes:\n\n" +
       sClasses + "\n\n" +
-      "Before you leave, please see each teacher in person to arrange the work you will miss. " +
-      "It is your responsibility to make these arrangements.";
+      "You are receiving this one week before the trip so you have time to meet with each teacher whose class you will miss. " +
+      "Please speak with them before departure and check this page for any work or assessment arrangements they record.";
     pushEmail("week_out", stu.email, "You are travelling on " + s.tripName, sBody,
       { text: "View your trip page and responsibilities →", url: studentLink(sid) });
 
@@ -448,7 +448,8 @@
       "Dear " + t.name + ",\n\n" +
       "These students have returned from " + s.tripName + ". The work you set was:\n\n" + lines + "\n\n" +
       "Each student should show you the completed work; please sign off on their record. " +
-      "If you need to record a PowerSchool log entry, we ask that you complete this within three days of the student returning to class.";
+      "Missed assignments are normally due within two calendar days of return, not including weekends, unless you have agreed on a different deadline with the student. " +
+      "If a PowerSchool log entry is needed, please complete it after that expectation has not been met.";
     pushEmail("morning_return", t.email, "Sign-off needed — " + s.tripName, body,
       { text: "Finalize each student's record →", url: teacherLink(tid) });
     markFired("morning_return"); save();
@@ -890,7 +891,7 @@
     var who = teacherName(state.viewingTeacherId);
     return [
       { key: "form", title: "Form not completed before the trip",
-        text: "Trip Absence — " + trip + " (" + dates + ").\n" + name + " did not complete the pre-trip work-arrangement form before departure. Expectation: students arrange missed work with each teacher prior to leaving. Logged by " + who + "." },
+        text: "Trip Absence — " + trip + " (" + dates + ").\n" + name + " did not meet with the teacher before departure to arrange missed work. Expectation: students speak with each affected teacher prior to leaving. Logged by " + who + "." },
       { key: "work", title: "Work not completed during / after the absence",
         text: "Trip Absence — " + trip + " (" + dates + ").\n" + name + " did not complete the work set for the absence. The work was provided; it remains outstanding on return. Logged by " + who + "." },
       { key: "assessment", title: "Missed assessment not yet negotiated / sat",
@@ -962,7 +963,7 @@
       : '<div class="note-box">Please acknowledge that you have seen this page (a one-tap confirmation will appear).</div>';
 
     var instructions = '<div class="card"><div class="card__head"><div class="card__title">What you need to do</div></div><div class="card__body">' +
-      "<p>Go to <b>each teacher below in person</b> and ask them to complete your record. " +
+      "<p>Meet with <b>each teacher whose class you will miss</b>. Ask them to record any work, due dates, or assessment arrangements in your trip absence record. " +
       "You do not enter anything here yourself — this page is read-only and just shows where things stand.</p></div></div>";
 
     // group by teacher
@@ -1009,7 +1010,7 @@
   function openAckModal(sid) {
     openModal(
       "<h2>One-tap acknowledgement</h2>" +
-      "<p>I have seen this page for <b>" + esc(studentName(sid)) + "</b> and understand my responsibilities: to see each teacher, arrange the work I missed, and sit/submit any missed assessment in negotiation with them.</p>" +
+      "<p>I have seen this page for <b>" + esc(studentName(sid)) + "</b> and understand that I am responsible for meeting with each teacher, checking the work recorded here, and arranging any missed assessment with the teacher.</p>" +
       '<div class="modal__actions"><button type="button" class="btn" data-action="ack-later">Later</button>' +
       '<button type="button" class="btn btn--primary" data-action="ack-confirm" data-sid="' + esc(sid) + '">I have seen this &amp; understand</button></div>'
     );
